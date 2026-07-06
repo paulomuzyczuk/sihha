@@ -1,0 +1,20 @@
+# Connection profile for the sihha Supabase Postgres. No secrets here — all
+# values come from environment variables (see README.md). Run dbt with
+# `--profiles-dir .` from this directory so this file is picked up.
+#
+# All dbt-built objects land in the `analytics` schema, which Supabase does
+# NOT expose through PostgREST — they are reachable only via direct Postgres
+# connections (dbt, Lightdash), never through the public API.
+sihha_analytics:
+  target: prod
+  outputs:
+    prod:
+      type: postgres
+      host: "{{ env_var('SIHHA_PG_HOST') }}"
+      port: "{{ env_var('SIHHA_PG_PORT', '5432') | as_number }}"
+      user: "{{ env_var('SIHHA_PG_USER') }}"
+      password: "{{ env_var('SIHHA_PG_PASSWORD') }}"
+      dbname: "{{ env_var('SIHHA_PG_DATABASE', 'postgres') }}"
+      schema: analytics
+      threads: 4
+      sslmode: require

@@ -1,0 +1,30 @@
+name: dbt build
+
+on:
+  workflow_dispatch:
+  # Uncomment after adding the SIHHA_PG_* repo secrets (see analytics/README.md):
+  # schedule:
+  #   - cron: '0 3 * * *' # nightly, 03:00 UTC
+
+jobs:
+  dbt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dbt
+        run: pip install dbt-postgres
+
+      - name: Build models and run tests
+        working-directory: analytics
+        run: dbt build --profiles-dir .
+        env:
+          SIHHA_PG_HOST: ${{ secrets.SIHHA_PG_HOST }}
+          SIHHA_PG_PORT: ${{ secrets.SIHHA_PG_PORT }}
+          SIHHA_PG_USER: ${{ secrets.SIHHA_PG_USER }}
+          SIHHA_PG_PASSWORD: ${{ secrets.SIHHA_PG_PASSWORD }}
+          SIHHA_PG_DATABASE: ${{ secrets.SIHHA_PG_DATABASE }}

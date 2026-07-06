@@ -1,0 +1,30 @@
+version: 2
+
+sources:
+  - name: sihha
+    description: >
+      Operational tables written by the sihha Next.js app (Supabase Postgres).
+      care_logs is write-only for app clients under RLS; dbt reads it through
+      a direct Postgres connection.
+    schema: public
+    tables:
+      - name: care_log_entries
+        description: >
+          One behavioral log entry per recipient-local day (M3 generic
+          store). Metric values live in the `values` JSONB keyed by
+          metric_definitions.key; staging unnests them.
+        columns:
+          - name: id
+            description: Primary key (UUID; legacy rows keep their care_logs id).
+          - name: recipient_id
+            description: The care recipient the entry belongs to.
+          - name: author_id
+            description: Author of the entry (auth.users FK).
+          - name: log_date
+            description: Recipient-local calendar date.
+          - name: created_at
+            description: Submission timestamp (UTC).
+      - name: metric_definitions
+        description: >
+          Schema-as-data metric catalog per recipient; staging derives the
+          household-task key set from it (boolean metrics without depends_on).

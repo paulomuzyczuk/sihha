@@ -1,0 +1,114 @@
+version: 2
+
+models:
+  - name: fct_behavioral_daily
+    description: >
+      Daily behavioral indicators for the clinician dashboard. Lightdash
+      explores this model; weekly and monthly views come from the log_date
+      time intervals.
+    meta:
+      label: Indicadores Comportamentais
+    columns:
+      - name: log_date
+        description: UTC calendar date.
+        tests:
+          - unique
+          - not_null
+        meta:
+          dimension:
+            type: date
+            label: Data
+            time_intervals: ['DAY', 'WEEK', 'MONTH']
+      - name: log_count
+        description: Number of logs submitted that day.
+        meta:
+          metrics:
+            total_logs:
+              type: sum
+              label: Registros
+      - name: mood_avg
+        description: Average mood score (1–5) across the day's logs.
+        meta:
+          metrics:
+            avg_mood:
+              type: average
+              label: Humor médio (1–5)
+              round: 1
+      - name: sleep_hours_avg
+        description: Average hours slept.
+        meta:
+          metrics:
+            avg_sleep_hours:
+              type: average
+              label: Sono médio (h)
+              round: 1
+      - name: medications_taken
+        description: Medication checklist items marked taken.
+        meta:
+          metrics:
+            total_medications_taken:
+              type: sum
+              label: Medicações tomadas
+      - name: medications_total
+        description: Medication checklist items due.
+        meta:
+          metrics:
+            total_medications_due:
+              type: sum
+              label: Medicações previstas
+      - name: medication_adherence_pct
+        description: >
+          Daily adherence % (taken / due). For multi-day rollups prefer the
+          adherence metric on the raw sums over averaging this column.
+        meta:
+          dimension:
+            label: Adesão no dia (%)
+      - name: exercise_sessions
+        description: Logs reporting an exercise session.
+        meta:
+          metrics:
+            total_exercise_sessions:
+              type: sum
+              label: Sessões de exercício
+      - name: exercise_minutes_total
+        description: Total exercise minutes.
+        meta:
+          metrics:
+            total_exercise_minutes:
+              type: sum
+              label: Exercício (min)
+      - name: household_tasks_done
+        description: Household tasks completed.
+        meta:
+          metrics:
+            total_tasks_done:
+              type: sum
+              label: Tarefas concluídas
+      - name: household_tasks_applicable
+        description: Household tasks that were due (weekly tasks count only on their day).
+        meta:
+          metrics:
+            total_tasks_applicable:
+              type: sum
+              label: Tarefas previstas
+      - name: appointments_attended
+        description: Medical appointments attended.
+        meta:
+          metrics:
+            total_appointments_attended:
+              type: sum
+              label: Consultas comparecidas
+      - name: appointments_missed
+        description: Medical appointments missed.
+        meta:
+          metrics:
+            total_appointments_missed:
+              type: sum
+              label: Consultas faltadas
+      - name: logs_location_verified
+        description: Logs submitted from inside the allowed geofence.
+        meta:
+          metrics:
+            total_logs_geoverified:
+              type: sum
+              label: Registros geoverificados

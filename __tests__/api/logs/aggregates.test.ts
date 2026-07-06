@@ -1,0 +1,238 @@
+import { NextRequest } from 'next/server';
+import { GET } from '../../../app/api/logs/aggregates/route';
+import { resetRateLimiter } from '../../../services/rateLimiter';
+import { chain, membershipRows } from '../../helpers/careTeamMock';
+import type { MetricSeries } from '../../../services/aggregates';
+
+const mockGetUser = jest.fn();
+
+jest.mock('@supabase/supabase-js', () => ({
+  createClient: () => ({ auth: { getUser: mockGetUser } }),
+}));
+
+const adminTables: Record<string, ReturnType<typeof chain>> = {};
+jest.mock('../../../services/db', () => ({
+  getAdminDbClient: () => ({
+    from: (table: string) => adminTables[table] ?? chain({ data: [] }),
+  }),
+}));
+
+function makeRequest(
+  period?: string,
+  token: string | null = 'valid-token',
+  lookback?: string,
+): NextRequest {
+  const headers: Record<string, string> = {};
+  if (token !== null) headers['Authorization'] = `Bearer ${token}`;
+  const url = new URL('http://localhost/api/logs/aggregates');
+  if (period !== undefined) url.searchParams.set('period', period);
+  if (lookback !== undefined) url.searchParams.set('lookback', lookback);
+  return new NextRequest(url, { method: 'GET', headers });
+}
+
+function mockRole(role: 'owner' | 'caregiver' | 'clinician' | 'recipient') {
+  mockGetUser.mockResolvedValue({
+    data: { user: { id: 'user-1', email: 'u@example.com' } },
+    error: null,
+  });
+  adminTables['care_team_members'] = chain({ data: membershipRows(role) });
+}
+
+// A representative slice of the flagship definitions — one metric per
+// value_type family, deliberately out of sort order.
+const METRIC_DEFS = [
+  {
+    key: 'medications',
+    label: 'Medicações',
+    value_type: 'medication_checklist',
+    config: {},
+    sort_order: 1,
+  },
+  {
+    key: 'mood',
+    label: 'Humor',
+    value_type: 'scale',
+    config: { min: 1, max: 5 },
+    sort_order: 0,
+  },
+  {
+    key: 'sleep',
+    label: 'Sono',
+    value_type: 'time_range',
+    config: {},
+    sort_order: 2,
+  },
+  {
+    key: 'exercise_type',
+    label: 'Tipo de exercício',
+    value_type: 'enum',
+    config: { options: [{ value: 'walking', label: 'Caminhada' }] },
+    sort_order: 3,
+  },
+  {
+    key: 'exercise_minutes',
+    label: 'Duração do exercício',
+    value_type: 'duration_minutes',
+    config: { depends_on: 'exercise_type' },
+    sort_order: 4,
+  },
+  {
+    key: 'fed_pet',
+    label: 'Alimentou o pet',
+    value_type: 'boolean',
+    config: {},
+    sort_order: 5,
+  },
+];
+
+function makeEntry(createdAt: string, mood: number) {
+  return {
+    created_at: createdAt,
+    values: {
+      mood,
+      medications: [{ taken: true }, { taken: false }],
+      sleep: { start: '22:00', end: '06:00', hours: 8 },
+      exercise_type: 'walking',
+      exercise_minutes: 30,
+      fed_pet: true,
+      // a value with no metric definition must never reach the response
+      notes: 'sensitive free text',
+    },
+  };
+}
+
+describe('GET /api/logs/aggregates (M4: generic per-metric series)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    resetRateLimiter();
+    for (const key of Object.keys(adminTables)) delete adminTables[key];
+    adminTables['metric_definitions'] = chain({ data: METRIC_DEFS });
+    adminTables['care_log_entries'] = chain({ data: [] });
+  });
+
+  it('returns 401 without a token', async () => {
+    const res = await GET(makeRequest('daily', null));
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 403 for caregivers and recipients (write-side roles)', async () => {
+    mockRole('caregiver');
+    expect((await GET(makeRequest('daily'))).status).toBe(403);
+    mockRole('recipient');
+    expect((await GET(makeRequest('daily'))).status).toBe(403);
+  });
+
+  it('returns 400 for an unknown period', async () => {
+    mockRole('clinician');
+    const res = await GET(makeRequest('yearly'));
+    expect(res.status).toBe(400);
+  });
+
+  it('defaults to the daily period and its default lookback when none given', async () => {
+    mockRole('clinician');
+    const res = await GET(makeRequest());
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.period).toBe('daily');
+    expect(body.lookback).toBe(14);
+  });
+
+  it('accepts a user-defined lookback and echoes it back', async () => {
+    mockRole('clinician');
+    const res = await GET(makeRequest('weekly', 'valid-token', '26'));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.lookback).toBe(26);
+  });
+
+  it('returns 400 for out-of-range or non-numeric lookback', async () => {
+    mockRole('clinician');
+    expect(
+      (await GET(makeRequest('monthly', 'valid-token', '13'))).status,
+    ).toBe(400);
+    expect((await GET(makeRequest('daily', 'valid-token', '0'))).status).toBe(
+      400,
+    );
+    expect((await GET(makeRequest('daily', 'valid-token', 'abc'))).status).toBe(
+      400,
+    );
+  });
+
+  it('returns one series per active metric definition, sorted, without raw fields', async () => {
+    mockRole('clinician');
+    adminTables['care_log_entries'] = chain({
+      data: [
+        makeEntry('2026-07-01T10:00:00.000Z', 2),
+        makeEntry('2026-07-01T18:00:00.000Z', 4),
+        makeEntry('2026-07-02T10:00:00.000Z', 5),
+      ],
+    });
+
+    const res = await GET(makeRequest('daily'));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+
+    expect(body.buckets).toEqual([
+      { key: '2026-07-01', logCount: 2 },
+      { key: '2026-07-02', logCount: 1 },
+    ]);
+    const series = body.series as MetricSeries[];
+    expect(series.map((s) => s.key)).toEqual([
+      'mood',
+      'medications',
+      'sleep',
+      'exercise_type',
+      'exercise_minutes',
+      'fed_pet',
+    ]);
+
+    const mood = series[0];
+    expect(mood.value_type).toBe('scale');
+    expect(mood.points.map((p) => p.avg)).toEqual([3, 5]);
+
+    const medications = series[1];
+    expect(medications.points[0].pct).toBe(50);
+
+    const sleep = series[2];
+    expect(sleep.points[0].avg).toBe(8);
+
+    const exerciseType = series[3];
+    expect(exerciseType.points[0].distribution).toEqual({ walking: 2 });
+
+    const exerciseMinutes = series[4];
+    expect(exerciseMinutes.points[0]).toMatchObject({ count: 2, sum: 60 });
+
+    const fedPet = series[5];
+    expect(fedPet.points[0].pct).toBe(100);
+
+    const serialized = JSON.stringify(body);
+    expect(serialized).not.toContain('notes');
+    expect(serialized).not.toContain('lat');
+  });
+
+  it('allows the owner role', async () => {
+    mockRole('owner');
+    const res = await GET(makeRequest('weekly'));
+    expect(res.status).toBe(200);
+  });
+
+  it('returns 500 when the metric definitions read fails', async () => {
+    mockRole('clinician');
+    adminTables['metric_definitions'] = chain({
+      data: null,
+      error: { message: 'boom' },
+    });
+    const res = await GET(makeRequest('daily'));
+    expect(res.status).toBe(500);
+  });
+
+  it('returns 500 when the database read fails', async () => {
+    mockRole('clinician');
+    adminTables['care_log_entries'] = chain({
+      data: null,
+      error: { message: 'boom' },
+    });
+    const res = await GET(makeRequest('daily'));
+    expect(res.status).toBe(500);
+  });
+});

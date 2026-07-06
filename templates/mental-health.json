@@ -1,0 +1,97 @@
+{
+  "id": "mental-health",
+  "name": "Saúde Mental",
+  "description": "Acompanhamento diário de saúde mental por um cuidador: humor, medicação, sono, exercício, consultas e rotina doméstica.",
+  "kind": "human",
+  "log_cadence": "one_per_day",
+  "suggests_recipient_role": true,
+  "alert_config": { "missing_log_hour": 21, "low_stock_days": 5 },
+  "metrics": [
+    {
+      "key": "mood",
+      "label": "Humor",
+      "value_type": "scale",
+      "config": { "min": 1, "max": 5 },
+      "required": true
+    },
+    {
+      "key": "medications",
+      "label": "Medicações",
+      "value_type": "medication_checklist",
+      "required": true
+    },
+    {
+      "key": "sleep",
+      "label": "Sono",
+      "value_type": "time_range",
+      "required": true
+    },
+    {
+      "key": "exercise_type",
+      "label": "Tipo de exercício",
+      "value_type": "enum",
+      "config": {
+        "options": [
+          { "value": "walking", "label": "Caminhada" },
+          { "value": "running", "label": "Corrida" },
+          { "value": "gym_session", "label": "Sessão de academia" },
+          { "value": "swimming", "label": "Natação" }
+        ]
+      }
+    },
+    {
+      "key": "exercise_minutes",
+      "label": "Duração do exercício",
+      "value_type": "duration_minutes",
+      "config": {
+        "options": [15, 30, 45, 60, 90],
+        "depends_on": "exercise_type"
+      }
+    },
+    {
+      "key": "appointment_type",
+      "label": "Tipo de consulta",
+      "value_type": "enum",
+      "config": {
+        "options": [
+          { "value": "psychologist", "label": "Psicólogo(a)" },
+          { "value": "psychiatrist", "label": "Psiquiatra" }
+        ]
+      }
+    },
+    {
+      "key": "appointment_attended",
+      "label": "Compareceu à consulta",
+      "value_type": "boolean",
+      "config": { "depends_on": "appointment_type" }
+    },
+    {
+      "key": "breakfast",
+      "label": "Tomou café da manhã",
+      "value_type": "boolean"
+    },
+    { "key": "lunch", "label": "Realizou o almoço", "value_type": "boolean" },
+    { "key": "snack", "label": "Realizou o lanche", "value_type": "boolean" },
+    { "key": "dinner", "label": "Realizou o jantar", "value_type": "boolean" },
+    { "key": "made_bed", "label": "Fez a cama", "value_type": "boolean" },
+    {
+      "key": "took_trash",
+      "label": "Descartou o lixo",
+      "value_type": "boolean"
+    },
+    {
+      "key": "did_laundry",
+      "label": "Realizou a lavagem de roupa",
+      "value_type": "boolean",
+      "cadence": "weekly",
+      "cadence_day": 0
+    },
+    {
+      "key": "grocery_shopping",
+      "label": "Realizou as compras do supermercado",
+      "value_type": "boolean",
+      "cadence": "weekly",
+      "cadence_day": 5
+    }
+  ]
+}

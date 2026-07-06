@@ -1,0 +1,66 @@
+# Logs
+/logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Diagnostic reports
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Dependency directories
+node_modules
+jspm_packages
+.pnpm-store
+
+# Optional npm cache directory
+.npm
+
+# Output directory for Next.js build
+.next
+out
+
+# Production build artifacts
+dist
+build
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+
+# IDEs and editors
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+supabase/.temp/
+.vercel
+.env*
+!analytics/lightdash/.env.example
+
+# dbt artifacts
+analytics/target/
+analytics/dbt_packages/
+analytics/logs/
+
+# root env template must ship with the public repo
+!.env.example
+
+# TypeScript incremental build state
+tsconfig.tsbuildinfo

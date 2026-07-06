@@ -1,0 +1,14 @@
+process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://mockproject.supabase.co';
+process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'mock-anon-key';
+process.env.SUPABASE_SERVICE_ROLE_KEY = 'mock-service-role-key';
+process.env.GMAIL_USER = 'mock-sender@gmail.com';
+process.env.GMAIL_APP_PASSWORD = 'mock-app-password';
+process.env.ALERT_EMAIL_ADMIN = 'mock-admin@example.com';
+process.env.ALERT_EMAIL_THERAPIST_A = 'mock-therapist-a@example.com';
+process.env.ALERT_EMAIL_THERAPIST_B = 'mock-therapist-b@example.com';
+process.env.CRON_SECRET = 'mock-cron-secret';
+process.env.TARGET_LAT = '52.5200';
+process.env.TARGET_LNG = '13.4050';
+process.env.ALLOWED_RADIUS_METERS = '100';
+process.env.ADMIN_EMAIL = 'mock-admin-access@example.com';
+process.env.NEXT_PUBLIC_SITE_URL = 'https://localhost:3000';

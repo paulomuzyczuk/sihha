@@ -1,0 +1,51 @@
+# Self-hosted Lightdash for the sihha analytics project. Runs on the CPU
+# tower, NOT on Vercel — Lightdash needs its own Postgres (metadata only;
+# the sihha data stays in Supabase) and a headless browser for chart
+# exports/scheduled deliveries.
+#
+#   cp .env.example .env   # fill in the secrets
+#   docker compose up -d
+#   open http://localhost:8080
+#
+# Image tags and env vars drift between Lightdash releases — if something
+# fails on first boot, cross-check https://docs.lightdash.com/self-host
+
+services:
+  lightdash:
+    image: lightdash/lightdash:latest
+    depends_on:
+      - db
+    environment:
+      PGHOST: db
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: ${LIGHTDASH_DB_PASSWORD}
+      PGDATABASE: lightdash
+      LIGHTDASH_SECRET: ${LIGHTDASH_SECRET}
+      SECURE_COOKIES: 'false' # http://localhost only — set true behind TLS
+      SITE_URL: ${SITE_URL:-http://localhost:8080}
+      HEADLESS_BROWSER_HOST: headless-browser
+      HEADLESS_BROWSER_PORT: 3000
+      DBT_PROJECT_DIR: /usr/app/dbt
+    volumes:
+      # The dbt project one directory up, so Lightdash can compile it
+      - ../:/usr/app/dbt
+    ports:
+      - '8080:8080'
+    restart: unless-stopped
+
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_PASSWORD: ${LIGHTDASH_DB_PASSWORD}
+      POSTGRES_DB: lightdash
+    volumes:
+      - lightdash-db:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  headless-browser:
+    image: ghcr.io/browserless/chromium:latest
+    restart: unless-stopped
+
+volumes:
+  lightdash-db:

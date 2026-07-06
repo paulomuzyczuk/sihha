@@ -1,0 +1,59 @@
+{
+  "id": "pet-care",
+  "name": "Cuidado de Pets",
+  "description": "Acompanhamento de um animal de estimação: alimentação, água, higiene, passeios, energia, apetite, medicação veterinária e peso.",
+  "kind": "pet",
+  "log_cadence": "one_per_day",
+  "suggests_recipient_role": false,
+  "alert_config": { "missing_log_hour": 21, "low_stock_days": 7 },
+  "metrics": [
+    {
+      "key": "fed",
+      "label": "Alimentou (ração e água)",
+      "value_type": "boolean",
+      "required": true
+    },
+    {
+      "key": "litter_cleaned",
+      "label": "Limpou a caixa de areia / local",
+      "value_type": "boolean"
+    },
+    {
+      "key": "walk_minutes",
+      "label": "Passeio",
+      "value_type": "duration_minutes",
+      "config": { "options": [10, 15, 30, 45, 60] }
+    },
+    {
+      "key": "energy",
+      "label": "Energia / disposição",
+      "value_type": "scale",
+      "config": { "min": 1, "max": 5 }
+    },
+    {
+      "key": "appetite",
+      "label": "Apetite",
+      "value_type": "enum",
+      "config": {
+        "options": [
+          { "value": "normal", "label": "Normal" },
+          { "value": "reduced", "label": "Reduzido" },
+          { "value": "none", "label": "Ausente" }
+        ]
+      }
+    },
+    {
+      "key": "medications",
+      "label": "Medicações veterinárias",
+      "value_type": "medication_checklist"
+    },
+    {
+      "key": "weight",
+      "label": "Peso",
+      "value_type": "number",
+      "config": { "unit": "kg", "min": 0, "max": 120 },
+      "cadence": "weekly",
+      "cadence_day": 0
+    }
+  ]
+}

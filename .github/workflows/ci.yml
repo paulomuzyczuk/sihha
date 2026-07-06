@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    name: Lint · Type-check · Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          # Pinned to match local dev. pnpm 11.x's store uses node:sqlite, which
+          # needs Node >= 22.5 (see node-version below).
+          version: 11.1.3
+
+      - uses: actions/setup-node@v4
+        with:
+          # Node 22 (LTS): provides node:sqlite for pnpm 11.x and clears the
+          # Node 20 runner-deprecation warning.
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Type-check
+        run: pnpm typecheck
+
+      - name: Format check
+        run: pnpm format:check
+
+      - name: Test
+        run: pnpm test
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://mockproject.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: mock-anon-key
+          SUPABASE_SERVICE_ROLE_KEY: mock-service-role-key
+          GMAIL_USER: mock-sender@gmail.com
+          GMAIL_APP_PASSWORD: mock-app-password
+          ALERT_EMAIL_ADMIN: mock-admin@example.com
+          ALERT_EMAIL_THERAPIST_A: mock-therapist-a@example.com
+          ALERT_EMAIL_THERAPIST_B: mock-therapist-b@example.com
+          CRON_SECRET: mock-cron-secret
+          TARGET_LAT: '52.5200'
+          TARGET_LNG: '13.4050'
+          ALLOWED_RADIUS_METERS: '100'
+          ADMIN_EMAIL: mock-admin-access@example.com
+          NEXT_PUBLIC_SITE_URL: https://localhost:3000
+
+      - name: Dependency audit
+        run: pnpm audit --audit-level=high

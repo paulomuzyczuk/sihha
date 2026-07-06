@@ -1,0 +1,23 @@
+version: 2
+
+models:
+  - name: stg_care_logs
+    description: >
+      One row per care log with the JSONB behavioral measures unnested into
+      typed columns. Notes and coordinates are excluded by design.
+    columns:
+      - name: care_log_id
+        description: Primary key.
+        tests:
+          - unique
+          - not_null
+      - name: log_date
+        description: UTC calendar date of the log.
+        tests:
+          - not_null
+      - name: mood_score
+        description: Patient mood, 1–5.
+        tests:
+          - not_null
+      - name: sleep_hours
+        description: Hours slept (computed server-side from bed/wake times).

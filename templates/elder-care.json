@@ -1,0 +1,69 @@
+{
+  "id": "elder-care",
+  "name": "Cuidado de Idosos",
+  "description": "Acompanhamento de um idoso por cuidadores (possivelmente em turnos): medicação, alimentação, hidratação, higiene, dor, quedas e peso.",
+  "kind": "human",
+  "log_cadence": "multiple_per_day",
+  "suggests_recipient_role": false,
+  "alert_config": { "missing_log_hour": 20, "low_stock_days": 7 },
+  "metrics": [
+    {
+      "key": "mood",
+      "label": "Humor / disposição",
+      "value_type": "scale",
+      "config": { "min": 1, "max": 5 },
+      "required": true
+    },
+    {
+      "key": "medications",
+      "label": "Medicações",
+      "value_type": "medication_checklist",
+      "required": true
+    },
+    { "key": "sleep", "label": "Sono", "value_type": "time_range" },
+    {
+      "key": "breakfast",
+      "label": "Tomou café da manhã",
+      "value_type": "boolean"
+    },
+    { "key": "lunch", "label": "Realizou o almoço", "value_type": "boolean" },
+    { "key": "dinner", "label": "Realizou o jantar", "value_type": "boolean" },
+    {
+      "key": "hydration_glasses",
+      "label": "Copos de água",
+      "value_type": "number",
+      "config": { "unit": "copos", "min": 0, "max": 20 }
+    },
+    {
+      "key": "hygiene",
+      "label": "Banho / higiene realizada",
+      "value_type": "boolean"
+    },
+    {
+      "key": "pain_level",
+      "label": "Nível de dor",
+      "value_type": "scale",
+      "config": { "min": 0, "max": 10 }
+    },
+    {
+      "key": "fall_occurred",
+      "label": "Sofreu queda",
+      "value_type": "boolean",
+      "required": true
+    },
+    {
+      "key": "walk_minutes",
+      "label": "Caminhada / mobilidade",
+      "value_type": "duration_minutes",
+      "config": { "options": [10, 15, 30, 45, 60] }
+    },
+    {
+      "key": "weight",
+      "label": "Peso",
+      "value_type": "number",
+      "config": { "unit": "kg", "min": 20, "max": 250 },
+      "cadence": "weekly",
+      "cadence_day": 0
+    }
+  ]
+}

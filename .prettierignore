@@ -1,0 +1,6 @@
+# Human-written handoff notes and docs — prose, not code; skip Prettier.
+docs/
+
+# Dependencies and build output
+node_modules/
+.next/

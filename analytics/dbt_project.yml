@@ -1,0 +1,14 @@
+name: 'sihha_analytics'
+version: '1.0.0'
+profile: 'sihha_analytics'
+
+model-paths: ['models']
+target-path: 'target'
+clean-targets: ['target', 'dbt_packages']
+
+models:
+  sihha_analytics:
+    staging:
+      +materialized: view
+    marts:
+      +materialized: table
