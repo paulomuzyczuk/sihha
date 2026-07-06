@@ -1,0 +1,30 @@
+name: Feature request
+description: Propose an improvement or a new capability
+labels: ['enhancement']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please skim [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md) first —
+        it lists what fits the project (and what deliberately doesn't:
+        multi-tenant SaaS, clinical/medical-device features).
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What caregiving situation does this address? Who hits it — owner, caregiver, clinician, recipient?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How you imagine it working. If it's a new metric type or template, sketch the shape.
+    validations:
+      required: true
+  - type: input
+    id: profile
+    attributes:
+      label: Care profile
+      description: Which template/context is this for, if any?
+      placeholder: e.g. elder care, pet care, all

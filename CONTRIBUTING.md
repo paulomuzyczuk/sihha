@@ -9,9 +9,9 @@ maintainer runs for a real care circle, so a quick check that a change fits
 the design saves everyone a wasted PR. Small fixes (typos, a clearly-broken
 thing) can go straight to a PR.
 
-By participating you agree to keep things respectful and constructive.
-Security issues should **not** be filed as public issues — see
-[`SECURITY.md`](SECURITY.md).
+By participating you agree to the
+[Code of Conduct](CODE_OF_CONDUCT.md). Security issues should **not** be
+filed as public issues — see [`SECURITY.md`](SECURITY.md).
 
 ## What contributions fit
 
