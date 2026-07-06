@@ -8,6 +8,11 @@ a patient, an aging parent, a pet — and everyone involved gets role-based
 dashboards and alerts. One opinionated engine; breadth comes from
 template-driven care profiles, not forks.
 
+> **Status:** working software, opened up — sihha has run a real care circle
+> in production since May 2026. Solo-maintained and pre-1.0: the schema and
+> APIs may still move. See [CONTRIBUTING.md](CONTRIBUTING.md) before sending
+> non-trivial PRs.
+
 ## Why sihha exists
 
 There is a gap between two kinds of existing software:
