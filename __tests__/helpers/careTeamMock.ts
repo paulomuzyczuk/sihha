@@ -22,6 +22,7 @@ export function chain(result: QueryResult): any {
     'eq',
     'neq',
     'gte',
+    'lte',
     'lt',
     'is',
     'not',

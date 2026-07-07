@@ -51,6 +51,12 @@ can edit, and **verifiable logging** (optional geofence check on submission).
   No client access to raw entries — reads are aggregate-only by design.
 - **CSV export** — clinicians download the aggregate series (same
   aggregates-only guarantee) as a spreadsheet-safe CSV.
+- **FHIR R4 facade** — a read-only, owner-gated `/api/fhir` surface
+  (CapabilityStatement, Patient, CareTeam, Observation,
+  MedicationStatement, `Patient/$everything`) so a circle's history can
+  move into any FHIR-speaking system. Notes and geolocation are never
+  exported; owners can attach LOINC/SNOMED codes per metric via
+  `config.coding`.
 - **English + Portuguese** — the UI ships in English by default with a
   per-browser PT|EN toggle; alert e-mails follow the `EMAIL_LOCALE` env.
 - **Analytics** — a dbt project (`analytics/`) staging the log entries into

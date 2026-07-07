@@ -18,6 +18,15 @@ and this project aims to adhere to [Semantic Versioning](https://semver.org/spec
   per-browser PT|EN toggle. English is the default (`DEFAULT_LOCALE` in
   `lib/i18n/dictionaries.ts`); alert e-mails follow the `EMAIL_LOCALE`
   env variable.
+- **FHIR R4 facade**: read-only `/api/fhir` endpoints —
+  CapabilityStatement (`/metadata`), Patient (read + search),
+  Observation and MedicationStatement (search with `patient`,
+  `date` ge/le and `_count`/`_offset` paging), CareTeam, and
+  `Patient/{id}/$everything` — with `application/fhir+json` responses
+  and OperationOutcome errors. Owner-gated (raw-entry granularity);
+  free-text notes and geolocation are never serialized. Metric codes
+  default to a local code system; owners attach standard vocabularies
+  per metric via `config.coding = { system, code, display }`.
 
 ### Changed
 

@@ -47,14 +47,17 @@ export type CareAuthResult =
  * IP rate limit → JWT verification → membership + recipient lookup → care
  * role check → per-user rate limit.
  *
- * Recipient resolution: a `recipient` query param when present (validated
- * against the caller's memberships), otherwise the user's single membership.
- * Users with several memberships must pass the param — the flagship
- * deployment has one circle, so the param stays optional there.
+ * Recipient resolution: `opts.recipientId` when given (FHIR routes identify
+ * the circle via the `patient` search param or the resource path), otherwise
+ * a `recipient` query param when present (validated against the caller's
+ * memberships), otherwise the user's single membership. Users with several
+ * memberships must identify the circle — the flagship deployment has one, so
+ * the param stays optional there.
  */
 export async function authorizeCareRequest(
   req: NextRequest,
   allowedRoles: readonly CareRole[],
+  opts: { recipientId?: string } = {},
 ): Promise<CareAuthResult> {
   if (!(await checkIpRateLimit(getClientIp(req))).allowed) {
     return {
@@ -98,7 +101,8 @@ export async function authorizeCareRequest(
   }
 
   const rows = (memberships ?? []) as unknown as CareMembership[];
-  const requestedRecipient = req.nextUrl.searchParams.get('recipient');
+  const requestedRecipient =
+    opts.recipientId ?? req.nextUrl.searchParams.get('recipient');
   const membership = requestedRecipient
     ? rows.find((m) => m.recipient_id === requestedRecipient)
     : rows.length === 1
