@@ -4,7 +4,17 @@ allowBuilds:
   unrs-resolver: true
 
 # pnpm no longer reads overrides from package.json's "pnpm" field.
-# Scoped so only the vulnerable glob range (GHSA-5j98-mcp5-4vw2) is bumped,
-# leaving the unrelated glob@7 (jest toolchain) untouched.
+# Each override is scoped to the advisory's vulnerable range so unrelated
+# major lines stay untouched (precedent: the glob@10 bump below).
 overrides:
+  # glob: GHSA-5j98-mcp5-4vw2 — leaves the unrelated glob@7 (jest) untouched
   'glob@>=10.2.0 <10.5.0': ^10.5.0
+  # postcss < 8.5.10: XSS via unescaped </style> in stringify output (runtime)
+  'postcss@<8.5.10': '>=8.5.10 <9'
+  # esbuild 0.27.3–0.28.0: arbitrary file read via dev server on Windows
+  'esbuild@>=0.27.3 <0.28.1': ^0.28.1
+  # js-yaml: quadratic-complexity DoS in merge-key handling (both major lines)
+  'js-yaml@<3.15.0': '>=3.15.0 <4'
+  'js-yaml@>=4.0.0 <4.2.0': ^4.2.0
+  # @babel/core <= 7.29.0: arbitrary file read via sourceMappingURL comment
+  '@babel/core@<7.29.6': ^7.29.6

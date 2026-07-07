@@ -1,5 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js';
-import { sendEmailAlert } from './email';
+import { emailText, sendEmailAlert } from './email';
 import { calculateRemainingPills } from './stock';
 import { getAlertRecipientEmails } from './careTeam';
 
@@ -65,7 +65,7 @@ export async function checkAndAlertLowStock(
     for (const email of emails) {
       await sendEmailAlert(
         email,
-        `[sihha] Estoque baixo: ${stock.name}`,
+        emailText('email.lowStockSubject', { name: stock.name }),
         buildLowStockBody(stock.name, daysRemaining, now),
       );
     }
@@ -84,5 +84,9 @@ function buildLowStockBody(
   now: number,
 ): string {
   const date = new Date(now).toISOString().split('T')[0];
-  return `Medicamento: ${name}\nDias restantes: ${daysRemaining.toFixed(1)}\nData do cálculo: ${date}`;
+  return emailText('email.lowStockBody', {
+    name,
+    days: daysRemaining.toFixed(1),
+    date,
+  });
 }

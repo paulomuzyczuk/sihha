@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDbClient } from '../../../../services/db';
 import { getAlertRecipientEmails } from '../../../../services/careTeam';
 import { localDate } from '../../../../services/dynamicLog';
-import { sendEmailAlert } from '../../../../services/email';
+import { emailText, sendEmailAlert } from '../../../../services/email';
 import { logger } from '../../../../services/logger';
 
 // Missing-log check, config-driven (M3): iterates active care recipients
@@ -70,8 +70,11 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       sent =
         (await sendEmailAlert(
           email,
-          '[sihha] Registro diário não preenchido',
-          `Data: ${today}\nPessoa cuidada: ${recipient.display_name}`,
+          emailText('email.missingLogSubject'),
+          emailText('email.missingLogBody', {
+            date: today,
+            name: recipient.display_name,
+          }),
         )) || sent;
     }
 

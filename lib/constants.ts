@@ -71,11 +71,6 @@ export const EXERCISE_TYPES = {
 
 export const EXERCISE_DURATIONS = [15, 30, 45, 60, 90] as const;
 
-export const APPOINTMENT_TYPES = {
-  PSYCHOLOGIST: 'psychologist',
-  PSYCHIATRIST: 'psychiatrist',
-} as const;
-
 export const DAILY_HOUSEHOLD_TASKS = [
   'fedPet',
   'cleanedLitter',
@@ -121,12 +116,4 @@ export const EXERCISE_TYPE_LABELS: Record<
   running: 'Corrida',
   gym_session: 'Sessão de academia',
   swimming: 'Natação',
-} as const;
-
-export const APPOINTMENT_TYPE_LABELS: Record<
-  (typeof APPOINTMENT_TYPES)[keyof typeof APPOINTMENT_TYPES],
-  string
-> = {
-  psychologist: 'Psicólogo(a)',
-  psychiatrist: 'Psiquiatra',
 } as const;

@@ -168,6 +168,13 @@ export const pt = {
   'geo.timeout':
     'Tempo limite para obtenção da localização esgotado. Tente novamente.',
 
+  // Alert e-mails (server-side; locale from EMAIL_LOCALE, see services/email)
+  'email.lowStockSubject': '[sihha] Estoque baixo: {name}',
+  'email.lowStockBody':
+    'Medicamento: {name}\nDias restantes: {days}\nData do cálculo: {date}',
+  'email.missingLogSubject': '[sihha] Registro diário não preenchido',
+  'email.missingLogBody': 'Data: {date}\nPessoa cuidada: {name}',
+
   // Admin shell
   'admin.badge': 'Administrador',
   'admin.viewTherapist': 'Ver como Terapeuta',
@@ -395,6 +402,12 @@ export const en: Record<TranslationKey, string> = {
   'geo.positionUnavailable':
     'Position unavailable. Check your network or GPS connection.',
   'geo.timeout': 'Timed out while obtaining your location. Please try again.',
+
+  'email.lowStockSubject': '[sihha] Low stock: {name}',
+  'email.lowStockBody':
+    'Medication: {name}\nDays remaining: {days}\nCalculation date: {date}',
+  'email.missingLogSubject': '[sihha] Daily log not submitted',
+  'email.missingLogBody': 'Date: {date}\nCare recipient: {name}',
 
   'admin.badge': 'Administrator',
   'admin.viewTherapist': 'View as Therapist',

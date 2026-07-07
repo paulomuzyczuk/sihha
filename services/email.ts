@@ -1,5 +1,30 @@
 import nodemailer from 'nodemailer';
+import {
+  Locale,
+  LOCALES,
+  translate,
+  TranslationKey,
+  TranslationVars,
+} from '../lib/i18n/dictionaries';
 import { logger } from './logger';
+
+/**
+ * Locale for outbound alert e-mails. E-mails render server-side, where the
+ * per-browser UI language preference does not exist, so the instance operator
+ * picks one via EMAIL_LOCALE ('pt' | 'en'). Unset or invalid values fall back
+ * to pt — the pre-i18n behaviour of the flagship deployment.
+ */
+export function emailLocale(): Locale {
+  const env = process.env.EMAIL_LOCALE;
+  return (LOCALES as readonly string[]).includes(env ?? '')
+    ? (env as Locale)
+    : 'pt';
+}
+
+/** translate() bound to the instance's e-mail locale. */
+export function emailText(key: TranslationKey, vars?: TranslationVars): string {
+  return translate(emailLocale(), key, vars);
+}
 
 export async function sendEmailAlert(
   to: string,

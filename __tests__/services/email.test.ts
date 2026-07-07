@@ -1,7 +1,41 @@
 import nodemailer from 'nodemailer';
-import { sendEmailAlert } from '../../services/email';
+import { emailLocale, emailText, sendEmailAlert } from '../../services/email';
 
 jest.mock('nodemailer');
+
+describe('emailLocale / emailText', () => {
+  const originalLocale = process.env.EMAIL_LOCALE;
+
+  afterEach(() => {
+    if (originalLocale === undefined) {
+      delete process.env.EMAIL_LOCALE;
+    } else {
+      process.env.EMAIL_LOCALE = originalLocale;
+    }
+  });
+
+  it('defaults to pt when EMAIL_LOCALE is unset or invalid', () => {
+    delete process.env.EMAIL_LOCALE;
+    expect(emailLocale()).toBe('pt');
+    process.env.EMAIL_LOCALE = 'fr';
+    expect(emailLocale()).toBe('pt');
+  });
+
+  it('renders alert e-mails in the configured locale', () => {
+    delete process.env.EMAIL_LOCALE;
+    expect(emailText('email.lowStockSubject', { name: 'Olanzapine' })).toBe(
+      '[sihha] Estoque baixo: Olanzapine',
+    );
+
+    process.env.EMAIL_LOCALE = 'en';
+    expect(emailText('email.lowStockSubject', { name: 'Olanzapine' })).toBe(
+      '[sihha] Low stock: Olanzapine',
+    );
+    expect(
+      emailText('email.missingLogBody', { date: '2026-07-07', name: 'Rex' }),
+    ).toBe('Date: 2026-07-07\nCare recipient: Rex');
+  });
+});
 
 describe('sendEmailAlert', () => {
   const mockSendMail = jest.fn();

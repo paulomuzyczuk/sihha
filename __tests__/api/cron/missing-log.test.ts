@@ -4,6 +4,8 @@ import { chain } from '../../helpers/careTeamMock';
 
 const mockSendEmail = jest.fn();
 jest.mock('../../../services/email', () => ({
+  // Real emailText so subject/body assertions cover the localized templates
+  emailText: jest.requireActual('../../../services/email').emailText,
   sendEmailAlert: (...args: unknown[]) => mockSendEmail(...args),
 }));
 
