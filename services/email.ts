@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import {
+  DEFAULT_LOCALE,
   Locale,
   LOCALES,
   translate,
@@ -12,13 +13,13 @@ import { logger } from './logger';
  * Locale for outbound alert e-mails. E-mails render server-side, where the
  * per-browser UI language preference does not exist, so the instance operator
  * picks one via EMAIL_LOCALE ('pt' | 'en'). Unset or invalid values fall back
- * to pt — the pre-i18n behaviour of the flagship deployment.
+ * to DEFAULT_LOCALE.
  */
 export function emailLocale(): Locale {
   const env = process.env.EMAIL_LOCALE;
   return (LOCALES as readonly string[]).includes(env ?? '')
     ? (env as Locale)
-    : 'pt';
+    : DEFAULT_LOCALE;
 }
 
 /** translate() bound to the instance's e-mail locale. */

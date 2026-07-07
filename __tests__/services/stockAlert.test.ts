@@ -1,4 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js';
+import { DEFAULT_LOCALE, translate } from '../../lib/i18n/dictionaries';
 import { checkAndAlertLowStock } from '../../services/stockAlert';
 import { chain } from '../helpers/careTeamMock';
 
@@ -65,7 +66,9 @@ describe('checkAndAlertLowStock (M3: per-recipient config + alert members)', () 
     expect(mockSendEmail).toHaveBeenCalledTimes(1);
     expect(mockSendEmail).toHaveBeenCalledWith(
       'admin@example.com',
-      '[sihha] Estoque baixo: Olanzapine',
+      translate(DEFAULT_LOCALE, 'email.lowStockSubject', {
+        name: 'Olanzapine',
+      }),
       expect.stringContaining('Olanzapine'),
     );
   });

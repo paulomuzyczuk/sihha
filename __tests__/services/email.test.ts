@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { DEFAULT_LOCALE } from '../../lib/i18n/dictionaries';
 import { emailLocale, emailText, sendEmailAlert } from '../../services/email';
 
 jest.mock('nodemailer');
@@ -14,15 +15,15 @@ describe('emailLocale / emailText', () => {
     }
   });
 
-  it('defaults to pt when EMAIL_LOCALE is unset or invalid', () => {
+  it('defaults to DEFAULT_LOCALE when EMAIL_LOCALE is unset or invalid', () => {
     delete process.env.EMAIL_LOCALE;
-    expect(emailLocale()).toBe('pt');
+    expect(emailLocale()).toBe(DEFAULT_LOCALE);
     process.env.EMAIL_LOCALE = 'fr';
-    expect(emailLocale()).toBe('pt');
+    expect(emailLocale()).toBe(DEFAULT_LOCALE);
   });
 
   it('renders alert e-mails in the configured locale', () => {
-    delete process.env.EMAIL_LOCALE;
+    process.env.EMAIL_LOCALE = 'pt';
     expect(emailText('email.lowStockSubject', { name: 'Olanzapine' })).toBe(
       '[sihha] Estoque baixo: Olanzapine',
     );

@@ -9,6 +9,7 @@ import React, {
   useState,
 } from 'react';
 import {
+  DEFAULT_LOCALE,
   Locale,
   LOCALES,
   translate,
@@ -16,13 +17,12 @@ import {
   TranslationVars,
 } from './dictionaries';
 
-// UI-language context. Portuguese is the default (the flagship deployment's
-// language and the pre-i18n behaviour); the choice persists per browser in
-// localStorage — it is a device preference, not account data, so it needs no
-// schema or API surface.
+// UI-language context. DEFAULT_LOCALE (dictionaries.ts) applies until the
+// user picks a language; the choice persists per browser in localStorage —
+// it is a device preference, not account data, so it needs no schema or API
+// surface.
 
 const STORAGE_KEY = 'sihha.locale';
-const DEFAULT_LOCALE: Locale = 'pt';
 
 export interface I18n {
   locale: Locale;

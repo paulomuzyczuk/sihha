@@ -1,3 +1,4 @@
+import { DEFAULT_LOCALE, translate } from '../../../lib/i18n/dictionaries';
 import { NextRequest } from 'next/server';
 import { GET } from '../../../app/api/cron/missing-log/route';
 import { chain } from '../../helpers/careTeamMock';
@@ -82,7 +83,7 @@ describe('GET /api/cron/missing-log (M3: config-driven)', () => {
     expect(destinations).toContain('caregiver@example.com');
     expect(destinations).toContain('admin-fallback@example.com');
     expect(mockSendEmail.mock.calls[0][1]).toBe(
-      '[sihha] Registro diário não preenchido',
+      translate(DEFAULT_LOCALE, 'email.missingLogSubject'),
     );
     expect(mockSendEmail.mock.calls[0][2]).toContain('Omar');
   });
