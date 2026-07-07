@@ -12,9 +12,10 @@ export const LOCALES = ['pt', 'en'] as const;
 export type Locale = (typeof LOCALES)[number];
 
 // Single authoritative default for the UI (I18nProvider) and alert e-mails
-// (emailLocale fallback). The flagship deployment is Portuguese; the public
-// repo flips this one line to 'en'.
-export const DEFAULT_LOCALE: Locale = 'pt';
+// (emailLocale fallback). The public repo defaults to English; deployments
+// serving a Portuguese-speaking care team flip this one line to 'pt' (users
+// can always switch per browser via the PT|EN toggle).
+export const DEFAULT_LOCALE: Locale = 'en';
 
 /** BCP 47 tags for Date/number formatting per UI locale. */
 export const DATE_LOCALES: Record<Locale, string> = {

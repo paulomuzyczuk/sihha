@@ -7,6 +7,36 @@ and this project aims to adhere to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased]
 
+### Added
+
+- **CSV export** for clinicians: `GET /api/logs/aggregates?format=csv`
+  returns the aggregate series as a spreadsheet-safe attachment (RFC 4180
+  quoting, formula-injection guard, UTF-8 BOM), plus an "Export CSV"
+  button on the clinician dashboard. Aggregates only — the export carries
+  no raw notes or coordinates.
+- **Internationalization**: English and Portuguese dictionaries with a
+  per-browser PT|EN toggle. English is the default (`DEFAULT_LOCALE` in
+  `lib/i18n/dictionaries.ts`); alert e-mails follow the `EMAIL_LOCALE`
+  env variable.
+
+### Changed
+
+- Low-stock and missing-log alert e-mails render from the i18n
+  dictionaries instead of hard-coded Portuguese strings.
+
+### Removed
+
+- Four dead pre-M3 form components (`MoodSlider`,
+  `HouseholdTasksChecklist`, `ExerciseSection`, `AppointmentSection`)
+  and the appointment constants only they referenced.
+
+### Security
+
+- Scoped pnpm overrides for five Dependabot advisories: postcss <8.5.10
+  (XSS in stringify output, runtime), esbuild 0.28.0 (dev-server file
+  read), js-yaml 3.x/4.x (merge-key DoS), @babel/core ≤7.29.0
+  (sourceMappingURL file read).
+
 ## [0.1.0] - 2026-07-06
 
 Initial public release — a fresh-history extraction of a production

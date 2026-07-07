@@ -49,6 +49,10 @@ can edit, and **verifiable logging** (optional geofence check on submission).
 - **Dashboards** — per-metric aggregate series (averages, completion %,
   adherence %) with daily/weekly/monthly bucketing and lookback control.
   No client access to raw entries — reads are aggregate-only by design.
+- **CSV export** — clinicians download the aggregate series (same
+  aggregates-only guarantee) as a spreadsheet-safe CSV.
+- **English + Portuguese** — the UI ships in English by default with a
+  per-browser PT|EN toggle; alert e-mails follow the `EMAIL_LOCALE` env.
 - **Analytics** — a dbt project (`analytics/`) staging the log entries into
   per-metric marts, ready for Lightdash.
 
@@ -56,7 +60,7 @@ can edit, and **verifiable logging** (optional geofence check on submission).
 
 Next.js (App Router) · Supabase (Postgres, Auth, RLS) · Vercel (hosting +
 cron) · Nodemailer (Gmail SMTP) · optional Upstash Redis rate limiting ·
-dbt + Lightdash for analytics. ~230 Jest tests.
+dbt + Lightdash for analytics. ~250 Jest tests.
 
 ## Self-hosting quickstart
 
