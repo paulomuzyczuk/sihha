@@ -2,6 +2,7 @@
 
 import React from 'react';
 import type { CareCircle } from '../lib/circles';
+import { useI18n } from '../lib/i18n/I18nProvider';
 
 interface CircleSwitcherProps {
   circles: CareCircle[];
@@ -19,6 +20,7 @@ export default function CircleSwitcher({
   selectedId,
   onChange,
 }: CircleSwitcherProps) {
+  const { t } = useI18n();
   if (circles.length < 2) return null;
 
   return (
@@ -27,7 +29,7 @@ export default function CircleSwitcher({
       onChange={(e) => onChange(e.target.value)}
       className="form-input"
       style={{ width: 'auto', padding: '0.45rem 0.75rem', fontSize: '0.85rem' }}
-      aria-label="Círculo de cuidado"
+      aria-label={t('circles.switcherAria')}
     >
       {circles.map((circle) => (
         <option key={circle.recipientId} value={circle.recipientId}>

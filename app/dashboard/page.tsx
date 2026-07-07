@@ -7,7 +7,9 @@ import LogForm from '../../components/LogForm';
 import InvoiceUploadForm from '../../components/InvoiceUploadForm';
 import CircleSwitcher from '../../components/CircleSwitcher';
 import MetricEditor from '../../components/MetricEditor';
+import LanguageToggle from '../../components/LanguageToggle';
 import { API_ROUTES, CARE_ROLES, ROLES } from '../../lib/constants';
+import { useI18n } from '../../lib/i18n/I18nProvider';
 import {
   CareCircle,
   loadSelectedRecipientId,
@@ -18,6 +20,7 @@ import {
 import { MedicationOption } from '../../lib/types';
 
 export default function DashboardPage() {
+  const { t } = useI18n();
   const [circles, setCircles] = useState<CareCircle[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -147,7 +150,7 @@ export default function DashboardPage() {
           style={{ width: '32px', height: '32px', borderWidth: '3px' }}
         ></div>
         <p style={{ color: 'hsl(var(--text-secondary))', fontSize: '0.9rem' }}>
-          Verificando sessão...
+          {t('common.checkingSession')}
         </p>
       </div>
     );
@@ -158,7 +161,7 @@ export default function DashboardPage() {
       style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}
     >
       <header className="navbar">
-        <div className="navbar-brand">Sistema de Cuidados Integrado</div>
+        <div className="navbar-brand">{t('common.brand')}</div>
         <div className="navbar-user">
           <span
             style={{
@@ -176,11 +179,16 @@ export default function DashboardPage() {
             />
           )}
           {role === CARE_ROLES.CAREGIVER && (
-            <span className="user-badge therapist">Cuidador(a)</span>
+            <span className="user-badge therapist">
+              {t('dashboard.caregiverBadge')}
+            </span>
           )}
           {role === CARE_ROLES.RECIPIENT && (
-            <span className="user-badge patient">Paciente</span>
+            <span className="user-badge patient">
+              {t('dashboard.patientBadge')}
+            </span>
           )}
+          <LanguageToggle />
           <button
             onClick={handleSignOut}
             className="btn btn-secondary"
@@ -191,7 +199,7 @@ export default function DashboardPage() {
               fontSize: '0.85rem',
             }}
           >
-            Sair
+            {t('common.signOut')}
           </button>
         </div>
       </header>
@@ -220,19 +228,16 @@ export default function DashboardPage() {
                   color: 'hsl(var(--primary))',
                 }}
               >
-                Aprovação Pendente
+                {t('dashboard.pendingTitle')}
               </h2>
               <div
                 className="alert alert-error"
                 style={{ marginBottom: '1.5rem' }}
               >
-                <span>
-                  Sua conta está aguardando aprovação do administrador. Entre em
-                  contato com seu supervisor para autorizar seu acesso.
-                </span>
+                <span>{t('dashboard.pendingBody')}</span>
               </div>
               <button onClick={handleSignOut} className="btn btn-secondary">
-                Voltar ao Acesso
+                {t('dashboard.backToAccess')}
               </button>
             </div>
           ) : role === CARE_ROLES.CAREGIVER ? (

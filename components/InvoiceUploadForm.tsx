@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { API_ROUTES, ERROR_MESSAGES } from '../lib/constants';
+import { API_ROUTES } from '../lib/constants';
 import { withRecipient } from '../lib/circles';
+import { useI18n } from '../lib/i18n/I18nProvider';
 import { InvoicePayload } from '../lib/types';
 import { supabase } from './supabaseClient';
 
@@ -14,6 +15,7 @@ interface InvoiceUploadFormProps {
 export default function InvoiceUploadForm({
   recipientId,
 }: InvoiceUploadFormProps) {
+  const { t } = useI18n();
   const [amount, setAmount] = useState<string>('');
   const [file, setFile] = useState<File | null>(null);
 
@@ -35,7 +37,7 @@ export default function InvoiceUploadForm({
     if (!allowedTypes.includes(selectedFile.type)) {
       setStatus({
         type: 'error',
-        message: 'Formato inválido. Apenas PDF, JPEG e PNG são aceitos.',
+        message: t('invoice.invalidFormat'),
       });
       setFile(null);
       return;
@@ -44,7 +46,7 @@ export default function InvoiceUploadForm({
     if (selectedFile.size > maxBytes) {
       setStatus({
         type: 'error',
-        message: 'Arquivo muito grande. O tamanho máximo permitido é 5MB.',
+        message: t('invoice.tooLarge'),
       });
       setFile(null);
       return;
@@ -85,7 +87,7 @@ export default function InvoiceUploadForm({
         reject(new Error('Geolocation is not supported by your browser'));
         return;
       }
-      setGeoProgress('Solicitando permissão de localização...');
+      setGeoProgress(t('logForm.requestingLocation'));
       navigator.geolocation.getCurrentPosition(
         (pos) => resolve(pos),
         (err) => reject(err),
@@ -101,7 +103,7 @@ export default function InvoiceUploadForm({
     if (isNaN(numericAmount) || numericAmount <= 0) {
       setStatus({
         type: 'error',
-        message: 'Informe um valor válido para a fatura.',
+        message: t('invoice.invalidAmount'),
       });
       return;
     }
@@ -109,14 +111,14 @@ export default function InvoiceUploadForm({
     if (!file) {
       setStatus({
         type: 'error',
-        message: 'Selecione ou arraste um documento de fatura para enviar.',
+        message: t('invoice.selectFile'),
       });
       return;
     }
 
     setStatus({
       type: 'loading',
-      message: 'Enviando documento ao armazenamento...',
+      message: t('invoice.uploading'),
     });
     setGeoProgress('');
 
@@ -128,7 +130,7 @@ export default function InvoiceUploadForm({
       if (!session) {
         setStatus({
           type: 'error',
-          message: ERROR_MESSAGES.UNAUTHORIZED,
+          message: t('errors.unauthorized'),
         });
         return;
       }
@@ -147,19 +149,21 @@ export default function InvoiceUploadForm({
       if (uploadError || !uploadData) {
         setStatus({
           type: 'error',
-          message: `Falha no envio do documento: ${uploadError?.message || 'Acesso negado'}`,
+          message: t('invoice.uploadFailed', {
+            reason: uploadError?.message || t('invoice.accessDenied'),
+          }),
         });
         return;
       }
 
       setStatus({
         type: 'loading',
-        message: 'Documento enviado. Obtendo geolocalização...',
+        message: t('invoice.uploaded'),
       });
 
       // 3. Capture Geolocation
       const position = await getGeolocation();
-      setGeoProgress('Localização obtida. Registrando fatura...');
+      setGeoProgress(t('invoice.registering'));
 
       // 4. Retrieve Public URL for uploaded storage asset
       const {
@@ -195,18 +199,18 @@ export default function InvoiceUploadForm({
 
       if (!res.ok) {
         if (res.status === 429) {
-          setStatus({ type: 'error', message: ERROR_MESSAGES.RATE_LIMIT });
+          setStatus({ type: 'error', message: t('errors.rateLimit') });
         } else if (res.status === 403) {
           setStatus({
             type: 'error',
-            message: 'Acesso negado: sem permissão para registrar faturas.',
+            message: t('invoice.forbidden'),
           });
         } else if (res.status === 401) {
-          setStatus({ type: 'error', message: ERROR_MESSAGES.UNAUTHORIZED });
+          setStatus({ type: 'error', message: t('errors.unauthorized') });
         } else {
           setStatus({
             type: 'error',
-            message: ERROR_MESSAGES.VALIDATION_FAILED,
+            message: t('errors.validation'),
           });
         }
         return;
@@ -215,7 +219,7 @@ export default function InvoiceUploadForm({
       // 6. Success State Update
       setStatus({
         type: 'success',
-        message: 'Fatura registrada com sucesso.',
+        message: t('invoice.success'),
       });
       setAmount('');
       setFile(null);
@@ -224,16 +228,13 @@ export default function InvoiceUploadForm({
         fileInputRef.current.value = '';
       }
     } catch (err: any) {
-      let errorMsg =
-        'Não foi possível obter a localização. Ative os serviços de localização e tente novamente.';
+      let errorMsg = t('geo.unavailable');
       if (err.code === 1) {
-        errorMsg =
-          'Permissão de localização negada. É necessário permitir acesso à geolocalização para registrar faturas.';
+        errorMsg = t('geo.denied');
       } else if (err.code === 2) {
-        errorMsg = 'Posição indisponível. Verifique sua rede ou conexão GPS.';
+        errorMsg = t('geo.positionUnavailable');
       } else if (err.code === 3) {
-        errorMsg =
-          'Tempo limite para obtenção da localização esgotado. Tente novamente.';
+        errorMsg = t('geo.timeout');
       }
       setStatus({
         type: 'error',
@@ -244,7 +245,7 @@ export default function InvoiceUploadForm({
 
   return (
     <form className="card" onSubmit={handleSubmit}>
-      <h2>Enviar Fatura de Compras</h2>
+      <h2>{t('invoice.title')}</h2>
 
       {status.type === 'error' && (
         <div className="alert alert-error">
@@ -266,7 +267,7 @@ export default function InvoiceUploadForm({
       )}
 
       <div className="form-group">
-        <label className="form-label">Valor Total da Fatura (R$)</label>
+        <label className="form-label">{t('invoice.amountLabel')}</label>
         <input
           type="number"
           step="0.01"
@@ -281,9 +282,7 @@ export default function InvoiceUploadForm({
       </div>
 
       <div className="form-group" style={{ marginBottom: '2rem' }}>
-        <label className="form-label">
-          Documento da Fatura (PDF, PNG, JPG — Máx. 5MB)
-        </label>
+        <label className="form-label">{t('invoice.docLabel')}</label>
 
         <input
           type="file"
@@ -309,20 +308,21 @@ export default function InvoiceUploadForm({
             <div>
               <p className="dropzone-filename">{file.name}</p>
               <p className="dropzone-text" style={{ marginTop: '0.25rem' }}>
-                {(file.size / (1024 * 1024)).toFixed(2)} MB — Clique para trocar
-                o arquivo
+                {t('invoice.clickToChange', {
+                  size: (file.size / (1024 * 1024)).toFixed(2),
+                })}
               </p>
             </div>
           ) : (
             <div>
               <p className="dropzone-text" style={{ fontWeight: '500' }}>
-                Arraste e solte seu arquivo aqui, ou clique para selecionar
+                {t('invoice.dropHere')}
               </p>
               <p
                 className="dropzone-text"
                 style={{ fontSize: '0.75rem', marginTop: '0.25rem' }}
               >
-                Somente PDF, JPEG ou PNG (Máx. 5MB)
+                {t('invoice.fileTypes')}
               </p>
             </div>
           )}
@@ -334,7 +334,9 @@ export default function InvoiceUploadForm({
         className="btn"
         disabled={status.type === 'loading'}
       >
-        {status.type === 'loading' ? 'Enviando e salvando...' : 'Enviar Fatura'}
+        {status.type === 'loading'
+          ? t('invoice.submitting')
+          : t('invoice.submit')}
       </button>
     </form>
   );

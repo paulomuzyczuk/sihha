@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '../../components/supabaseClient';
 import ClinicianDashboard from '../../components/ClinicianDashboard';
 import CircleSwitcher from '../../components/CircleSwitcher';
+import LanguageToggle from '../../components/LanguageToggle';
 import { API_ROUTES, CARE_ROLES, ROLES } from '../../lib/constants';
+import { useI18n } from '../../lib/i18n/I18nProvider';
 import {
   CareCircle,
   loadSelectedRecipientId,
@@ -14,6 +16,7 @@ import {
 } from '../../lib/circles';
 
 export default function ClinicianPage() {
+  const { t } = useI18n();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [accessToken, setAccessToken] = useState('');
@@ -93,7 +96,7 @@ export default function ClinicianPage() {
           style={{ width: '32px', height: '32px', borderWidth: '3px' }}
         ></div>
         <p style={{ color: 'hsl(var(--text-secondary))', fontSize: '0.9rem' }}>
-          Verificando sessão...
+          {t('common.checkingSession')}
         </p>
       </div>
     );
@@ -104,7 +107,7 @@ export default function ClinicianPage() {
       style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}
     >
       <header className="navbar">
-        <div className="navbar-brand">Sistema de Cuidados Integrado</div>
+        <div className="navbar-brand">{t('common.brand')}</div>
         <div className="navbar-user">
           {selectedId && (
             <CircleSwitcher
@@ -113,7 +116,8 @@ export default function ClinicianPage() {
               onChange={handleSwitchCircle}
             />
           )}
-          <span className="user-badge clinician">Equipe Clínica</span>
+          <span className="user-badge clinician">{t('clinician.badge')}</span>
+          <LanguageToggle />
           <button
             onClick={handleSignOut}
             className="btn btn-secondary"
@@ -124,7 +128,7 @@ export default function ClinicianPage() {
               fontSize: '0.85rem',
             }}
           >
-            Sair
+            {t('common.signOut')}
           </button>
         </div>
       </header>

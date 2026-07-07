@@ -11,6 +11,9 @@ import ClinicianDashboard from '../../components/ClinicianDashboard';
 import InviteUserForm from '../../components/InviteUserForm';
 import CreateRecipientForm from '../../components/CreateRecipientForm';
 import MetricEditor from '../../components/MetricEditor';
+import LanguageToggle from '../../components/LanguageToggle';
+import { useI18n } from '../../lib/i18n/I18nProvider';
+import type { TranslationKey } from '../../lib/i18n/dictionaries';
 
 type AdminView =
   | 'THERAPIST'
@@ -21,16 +24,17 @@ type AdminView =
   | 'METRICS'
   | null;
 
-const VIEW_LABELS: Record<NonNullable<AdminView>, string> = {
-  THERAPIST: 'Ver como Terapeuta',
-  PATIENT: 'Ver como Paciente',
-  CLINICIAN: 'Ver como Equipe Clínica',
-  INVITE: 'Convidar Usuário',
-  RECIPIENT: 'Novo Círculo',
-  METRICS: 'Editar Métricas',
+const VIEW_LABEL_KEYS: Record<NonNullable<AdminView>, TranslationKey> = {
+  THERAPIST: 'admin.viewTherapist',
+  PATIENT: 'admin.viewPatient',
+  CLINICIAN: 'admin.viewClinician',
+  INVITE: 'admin.invite',
+  RECIPIENT: 'admin.newCircle',
+  METRICS: 'admin.editMetrics',
 };
 
 export default function AdminPage() {
+  const { t } = useI18n();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [selectedView, setSelectedView] = useState<AdminView>(null);
@@ -95,7 +99,7 @@ export default function AdminPage() {
           style={{ width: '32px', height: '32px', borderWidth: '3px' }}
         ></div>
         <p style={{ color: 'hsl(var(--text-secondary))', fontSize: '0.9rem' }}>
-          Verificando sessão...
+          {t('common.checkingSession')}
         </p>
       </div>
     );
@@ -106,9 +110,10 @@ export default function AdminPage() {
       style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}
     >
       <header className="navbar">
-        <div className="navbar-brand">Sistema de Cuidados Integrado</div>
+        <div className="navbar-brand">{t('common.brand')}</div>
         <div className="navbar-user">
-          <span className="user-badge admin">Administrador</span>
+          <span className="user-badge admin">{t('admin.badge')}</span>
+          <LanguageToggle />
           <button
             onClick={handleSignOut}
             className="btn btn-secondary"
@@ -119,7 +124,7 @@ export default function AdminPage() {
               fontSize: '0.85rem',
             }}
           >
-            Sair
+            {t('common.signOut')}
           </button>
         </div>
       </header>
@@ -164,7 +169,7 @@ export default function AdminPage() {
                 fontSize: '0.9rem',
               }}
             >
-              {VIEW_LABELS[view]}
+              {t(VIEW_LABEL_KEYS[view])}
             </button>
           ))}
         </div>

@@ -2,8 +2,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { API_ROUTES, ERROR_MESSAGES } from '../lib/constants';
+import { API_ROUTES } from '../lib/constants';
 import { withRecipient } from '../lib/circles';
+import { useI18n } from '../lib/i18n/I18nProvider';
 import { MedicationOption } from '../lib/types';
 import { supabase } from './supabaseClient';
 import SleepInput from './log-form/SleepInput';
@@ -95,6 +96,7 @@ interface LogFormProps {
 }
 
 export default function LogForm({ medications, recipientId }: LogFormProps) {
+  const { t } = useI18n();
   const router = useRouter();
   const [metrics, setMetrics] = useState<MetricDto[]>([]);
   const [values, setValues] = useState<Record<string, MetricValue>>({});
@@ -113,7 +115,7 @@ export default function LogForm({ medications, recipientId }: LogFormProps) {
         data: { session },
       } = await supabase.auth.getSession();
       if (!session) {
-        setLoadError(ERROR_MESSAGES.UNAUTHORIZED);
+        setLoadError(t('errors.unauthorized'));
         setLoadingMetrics(false);
         return;
       }
@@ -125,7 +127,7 @@ export default function LogForm({ medications, recipientId }: LogFormProps) {
           { headers: { Authorization: `Bearer ${session.access_token}` } },
         );
         if (!res.ok) {
-          setLoadError('Não foi possível carregar o formulário.');
+          setLoadError(t('logForm.loadError'));
           return;
         }
         const data = await res.json();
@@ -142,13 +144,13 @@ export default function LogForm({ medications, recipientId }: LogFormProps) {
           ),
         );
       } catch {
-        setLoadError('Erro de conexão ao carregar o formulário.');
+        setLoadError(t('logForm.connError'));
       } finally {
         setLoadingMetrics(false);
       }
     };
     load();
-  }, [medications, recipientId]);
+  }, [medications, recipientId, t]);
 
   const setValue = (key: string, value: MetricValue) => {
     setValues((current) => {
@@ -169,7 +171,7 @@ export default function LogForm({ medications, recipientId }: LogFormProps) {
         reject(new Error('Geolocation is not supported by your browser'));
         return;
       }
-      setGeoProgress('Solicitando permissão de localização...');
+      setGeoProgress(t('logForm.requestingLocation'));
       navigator.geolocation.getCurrentPosition(
         (pos) => resolve(pos),
         (err) => reject(err),
@@ -179,14 +181,14 @@ export default function LogForm({ medications, recipientId }: LogFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setStatus({ type: 'loading', message: 'Enviando registro...' });
+    setStatus({ type: 'loading', message: t('logForm.submittingStatus') });
     setGeoProgress('');
 
     // Geolocation is best-effort — failure does not block submission
     let location: { lat: number; lng: number; accuracy?: number } | undefined;
     try {
       const position = await getGeolocation();
-      setGeoProgress('Localização obtida.');
+      setGeoProgress(t('logForm.locationObtained'));
       location = {
         lat: position.coords.latitude,
         lng: position.coords.longitude,
@@ -208,7 +210,7 @@ export default function LogForm({ medications, recipientId }: LogFormProps) {
         data: { session },
       } = await supabase.auth.getSession();
       if (!session) {
-        setStatus({ type: 'error', message: ERROR_MESSAGES.UNAUTHORIZED });
+        setStatus({ type: 'error', message: t('errors.unauthorized') });
         return;
       }
 
@@ -234,24 +236,23 @@ export default function LogForm({ medications, recipientId }: LogFormProps) {
 
       if (!res.ok) {
         if (res.status === 429) {
-          setStatus({ type: 'error', message: ERROR_MESSAGES.RATE_LIMIT });
+          setStatus({ type: 'error', message: t('errors.rateLimit') });
         } else if (res.status === 409) {
           setStatus({
             type: 'error',
-            message: 'O registro de hoje já foi enviado.',
+            message: t('logForm.alreadySubmitted'),
           });
         } else if (res.status === 403) {
           setStatus({
             type: 'error',
-            message:
-              'Acesso negado: sem permissão para registrar logs de cuidados.',
+            message: t('logForm.forbidden'),
           });
         } else if (res.status === 401) {
-          setStatus({ type: 'error', message: ERROR_MESSAGES.UNAUTHORIZED });
+          setStatus({ type: 'error', message: t('errors.unauthorized') });
         } else {
           setStatus({
             type: 'error',
-            message: ERROR_MESSAGES.VALIDATION_FAILED,
+            message: t('errors.validation'),
           });
         }
         return;
@@ -259,7 +260,7 @@ export default function LogForm({ medications, recipientId }: LogFormProps) {
 
       router.push(`/success?createdAt=${encodeURIComponent(data.createdAt)}`);
     } catch {
-      setStatus({ type: 'error', message: ERROR_MESSAGES.VALIDATION_FAILED });
+      setStatus({ type: 'error', message: t('errors.validation') });
     }
   };
 
@@ -442,7 +443,7 @@ export default function LogForm({ medications, recipientId }: LogFormProps) {
           style={{ width: '28px', height: '28px', borderWidth: '3px' }}
         ></div>
         <p style={{ color: 'hsl(var(--text-secondary))', fontSize: '0.9rem' }}>
-          Carregando formulário...
+          {t('logForm.loading')}
         </p>
       </div>
     );
@@ -460,7 +461,7 @@ export default function LogForm({ medications, recipientId }: LogFormProps) {
 
   return (
     <form className="card" onSubmit={handleSubmit}>
-      <h2>Registro Diário do Cuidador</h2>
+      <h2>{t('logForm.title')}</h2>
 
       {status.type === 'error' && (
         <div className="alert alert-error">
@@ -480,7 +481,7 @@ export default function LogForm({ medications, recipientId }: LogFormProps) {
       <NotesTextarea value={notes} onChange={setNotes} disabled={disabled} />
 
       <button type="submit" className="btn" disabled={disabled}>
-        {disabled ? 'Enviando...' : 'Enviar Registro'}
+        {disabled ? t('logForm.submitting') : t('logForm.submit')}
       </button>
     </form>
   );

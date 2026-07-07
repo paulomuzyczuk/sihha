@@ -236,3 +236,72 @@ describe('GET /api/logs/aggregates (M4: generic per-metric series)', () => {
     expect(res.status).toBe(500);
   });
 });
+
+function makeCsvRequest(
+  format: string,
+  token: string | null = 'valid-token',
+): NextRequest {
+  const headers: Record<string, string> = {};
+  if (token !== null) headers['Authorization'] = `Bearer ${token}`;
+  const url = new URL('http://localhost/api/logs/aggregates');
+  url.searchParams.set('period', 'daily');
+  url.searchParams.set('format', format);
+  return new NextRequest(url, { method: 'GET', headers });
+}
+
+describe('GET /api/logs/aggregates?format=csv (clinician export)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    resetRateLimiter();
+    for (const key of Object.keys(adminTables)) delete adminTables[key];
+    adminTables['metric_definitions'] = chain({ data: METRIC_DEFS });
+    adminTables['care_log_entries'] = chain({
+      data: [
+        makeEntry('2026-07-01T10:00:00.000Z', 2),
+        makeEntry('2026-07-01T18:00:00.000Z', 4),
+        makeEntry('2026-07-02T10:00:00.000Z', 5),
+      ],
+    });
+  });
+
+  it('returns a CSV attachment for clinicians', async () => {
+    mockRole('clinician');
+    const res = await GET(makeCsvRequest('csv'));
+    expect(res.status).toBe(200);
+    expect(res.headers.get('Content-Type')).toBe('text/csv; charset=utf-8');
+    expect(res.headers.get('Content-Disposition')).toBe(
+      'attachment; filename="care-aggregates-daily-last-14.csv"',
+    );
+
+    // text() strips a leading BOM per the WHATWG spec, so the Excel hint is
+    // asserted on the raw bytes (EF BB BF) and the content on the decoded rest.
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    expect([...bytes.slice(0, 3)]).toEqual([0xef, 0xbb, 0xbf]);
+    const lines = new TextDecoder().decode(bytes.slice(3)).split('\r\n');
+    expect(lines[0]).toBe(
+      'period,logs,Humor (avg),Medicações (%),Sono (avg),' +
+        'Tipo de exercício,Duração do exercício (count),' +
+        'Duração do exercício (min),Alimentou o pet (%)',
+    );
+    expect(lines[1]).toBe('2026-07-01,2,3,50,8,walking:2,2,60,100');
+    expect(lines[2]).toBe('2026-07-02,1,5,50,8,walking:1,1,30,100');
+  });
+
+  it('allows the owner role and keeps write-side roles out', async () => {
+    mockRole('owner');
+    expect((await GET(makeCsvRequest('csv'))).status).toBe(200);
+    mockRole('caregiver');
+    expect((await GET(makeCsvRequest('csv'))).status).toBe(403);
+  });
+
+  it('rejects an unknown format', async () => {
+    mockRole('clinician');
+    expect((await GET(makeCsvRequest('xlsx'))).status).toBe(400);
+  });
+
+  it('never includes raw notes in the export', async () => {
+    mockRole('clinician');
+    const text = await (await GET(makeCsvRequest('csv'))).text();
+    expect(text).not.toContain('sensitive free text');
+  });
+});

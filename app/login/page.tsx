@@ -3,7 +3,9 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../components/supabaseClient';
+import LanguageToggle from '../../components/LanguageToggle';
 import { ROLES } from '../../lib/constants';
+import { useI18n } from '../../lib/i18n/I18nProvider';
 import { homeRouteForMemberships } from './logic';
 
 // Membership lookup for post-login routing (M3). RLS lets a user read only
@@ -33,6 +35,7 @@ const linkStyle: React.CSSProperties = {
 };
 
 export default function LoginPage() {
+  const { t } = useI18n();
   const [authState, setAuthState] = useState<AuthState>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -68,7 +71,7 @@ export default function LoginPage() {
     });
 
     if (authError || !data.session) {
-      setError('Credenciais inválidas. Tente novamente.');
+      setError(t('login.invalidCredentials'));
       setLoading(false);
       return;
     }
@@ -77,7 +80,7 @@ export default function LoginPage() {
     // one is not yet provisioned — lock it out until the admin adds it.
     const route = await resolveHomeRoute(data.session.user.app_metadata?.role);
     if (!route) {
-      setError('Sua conta ainda não está vinculada a um círculo de cuidado.');
+      setError(t('login.noCircle'));
       await supabase.auth.signOut();
       setLoading(false);
       return;
@@ -98,14 +101,12 @@ export default function LoginPage() {
     );
 
     if (resetError) {
-      setError('Não foi possível enviar o e-mail de redefinição.');
+      setError(t('login.resetFailed'));
       setLoading(false);
       return;
     }
 
-    setMessage(
-      'E-mail de redefinição enviado. Verifique sua caixa de entrada.',
-    );
+    setMessage(t('login.resetSent'));
     setLoading(false);
   };
 
@@ -117,7 +118,7 @@ export default function LoginPage() {
       >
         <div className="card">
           <h1 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>
-            Redefinir Senha
+            {t('login.resetTitle')}
           </h1>
           {error && (
             <div className="alert alert-error">
@@ -135,19 +136,19 @@ export default function LoginPage() {
               style={{ display: 'flex', flexDirection: 'column' }}
             >
               <div className="form-group">
-                <label className="form-label">Endereço de e-mail</label>
+                <label className="form-label">{t('login.email')}</label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="form-input"
-                  placeholder="cuidador@dominio.com"
+                  placeholder={t('login.emailPlaceholder')}
                   disabled={loading}
                   required
                 />
               </div>
               <button type="submit" className="btn" disabled={loading}>
-                {loading ? 'Enviando...' : 'Enviar link de redefinição'}
+                {loading ? t('login.sending') : t('login.sendResetLink')}
               </button>
             </form>
           )}
@@ -157,8 +158,17 @@ export default function LoginPage() {
               onClick={() => switchState('login')}
               style={linkStyle}
             >
-              Voltar ao login
+              {t('common.backToLogin')}
             </button>
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              marginTop: '1rem',
+            }}
+          >
+            <LanguageToggle />
           </div>
         </div>
       </main>
@@ -172,7 +182,7 @@ export default function LoginPage() {
     >
       <div className="card">
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <h1 style={{ fontSize: '2rem' }}>Sistema de Cuidados Integrado</h1>
+          <h1 style={{ fontSize: '2rem' }}>{t('common.brand')}</h1>
           <p
             style={{
               color: 'hsl(var(--text-secondary))',
@@ -180,7 +190,7 @@ export default function LoginPage() {
               marginTop: '0.25rem',
             }}
           >
-            Plataforma de Cuidados — Acesso Seguro
+            {t('login.subtitle')}
           </p>
         </div>
 
@@ -195,13 +205,13 @@ export default function LoginPage() {
           style={{ display: 'flex', flexDirection: 'column' }}
         >
           <div className="form-group">
-            <label className="form-label">Endereço de e-mail</label>
+            <label className="form-label">{t('login.email')}</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="form-input"
-              placeholder="cuidador@dominio.com"
+              placeholder={t('login.emailPlaceholder')}
               disabled={loading}
               required
               id="email-input"
@@ -209,7 +219,7 @@ export default function LoginPage() {
           </div>
 
           <div className="form-group" style={{ marginBottom: '2rem' }}>
-            <label className="form-label">Senha</label>
+            <label className="form-label">{t('login.password')}</label>
             <input
               type="password"
               value={password}
@@ -223,7 +233,7 @@ export default function LoginPage() {
           </div>
 
           <button type="submit" className="btn" disabled={loading}>
-            {loading ? 'Autenticando...' : 'Entrar'}
+            {loading ? t('login.submitting') : t('login.submit')}
           </button>
 
           <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
@@ -232,7 +242,7 @@ export default function LoginPage() {
               onClick={() => switchState('forgot-password')}
               style={linkStyle}
             >
-              Esqueceu a senha?
+              {t('login.forgot')}
             </button>
           </div>
         </form>
@@ -245,8 +255,17 @@ export default function LoginPage() {
             marginTop: '1.5rem',
           }}
         >
-          O acesso é por convite. Contate o administrador para receber o seu.
+          {t('login.inviteOnly')}
         </p>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            marginTop: '1rem',
+          }}
+        >
+          <LanguageToggle />
+        </div>
       </div>
     </main>
   );

@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { API_ROUTES } from '../lib/constants';
 import { withRecipient } from '../lib/circles';
+import { useI18n } from '../lib/i18n/I18nProvider';
 
 // Owner-facing CRUD over the circle's metric definitions (M4, design §5.4).
 // The server enforces decision #4 (value_type freezes once referenced), so
@@ -22,25 +23,19 @@ interface MetricRow {
   active: boolean;
 }
 
-const VALUE_TYPE_LABELS: Record<string, string> = {
-  scale: 'Escala',
-  boolean: 'Sim/não',
-  number: 'Número',
-  duration_minutes: 'Duração (min)',
-  time_range: 'Horário (início–fim)',
-  enum: 'Escolha única',
-  medication_checklist: 'Checklist de medicações',
-};
+const VALUE_TYPES = [
+  'scale',
+  'boolean',
+  'number',
+  'duration_minutes',
+  'time_range',
+  'enum',
+  'medication_checklist',
+] as const;
+type ValueType = (typeof VALUE_TYPES)[number];
 
-const WEEKDAY_LABELS = [
-  'Segunda',
-  'Terça',
-  'Quarta',
-  'Quinta',
-  'Sexta',
-  'Sábado',
-  'Domingo',
-];
+const WEEKDAYS = [0, 1, 2, 3, 4, 5, 6] as const;
+type Weekday = (typeof WEEKDAYS)[number];
 
 interface MetricEditorProps {
   accessToken: string;
@@ -52,6 +47,7 @@ export default function MetricEditor({
   accessToken,
   recipientId,
 }: MetricEditorProps) {
+  const { t } = useI18n();
   const [metrics, setMetrics] = useState<MetricRow[]>([]);
   const [labels, setLabels] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -82,7 +78,7 @@ export default function MetricEditor({
         { headers: { Authorization: `Bearer ${accessToken}` } },
       );
       if (!res.ok) {
-        setError('Não foi possível carregar as métricas.');
+        setError(t('metric.loadFailed'));
         return;
       }
       const data = await res.json();
@@ -90,11 +86,11 @@ export default function MetricEditor({
       setMetrics(rows);
       setLabels(Object.fromEntries(rows.map((row) => [row.key, row.label])));
     } catch {
-      setError('Erro de conexão ao carregar as métricas.');
+      setError(t('metric.connErrorLoad'));
     } finally {
       setLoading(false);
     }
-  }, [accessToken, recipientId]);
+  }, [accessToken, recipientId, t]);
 
   useEffect(() => {
     loadMetrics();
@@ -118,12 +114,12 @@ export default function MetricEditor({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error ?? 'Não foi possível salvar a alteração.');
+        setError(data.error ?? t('metric.saveFailed'));
         return false;
       }
       return true;
     } catch {
-      setError('Erro de conexão ao salvar a alteração.');
+      setError(t('metric.connErrorSave'));
       return false;
     } finally {
       setBusy(false);
@@ -172,7 +168,7 @@ export default function MetricEditor({
       try {
         config = JSON.parse(newConfig);
       } catch {
-        setError('Configuração inválida: informe um JSON válido.');
+        setError(t('metric.invalidConfig'));
         return;
       }
     }
@@ -197,21 +193,29 @@ export default function MetricEditor({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error ?? 'Não foi possível criar a métrica.');
+        setError(data.error ?? t('metric.createFailed'));
         return;
       }
-      setMessage(`Métrica "${newLabel.trim()}" criada.`);
+      setMessage(t('metric.created', { label: newLabel.trim() }));
       setNewKey('');
       setNewLabel('');
       setNewConfig('');
       setNewRequired(false);
       await loadMetrics();
     } catch {
-      setError('Erro de conexão ao criar a métrica.');
+      setError(t('metric.connErrorCreate'));
     } finally {
       setBusy(false);
     }
   };
+
+  const valueTypeLabel = (valueType: string): string =>
+    (VALUE_TYPES as readonly string[]).includes(valueType)
+      ? t(`metric.type.${valueType as ValueType}`)
+      : valueType;
+
+  const weekdayLabel = (day: number): string =>
+    t(`metric.weekday.${(((day % 7) + 7) % 7) as Weekday}`);
 
   const rowStyle: React.CSSProperties = {
     display: 'flex',
@@ -231,7 +235,7 @@ export default function MetricEditor({
   return (
     <div className="card" style={{ maxWidth: '720px', width: '100%' }}>
       <h2 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>
-        Métricas do Círculo
+        {t('metric.title')}
       </h2>
       <p
         style={{
@@ -240,8 +244,7 @@ export default function MetricEditor({
           marginBottom: '1.5rem',
         }}
       >
-        O tipo de uma métrica não pode mudar depois que registros a referenciam
-        — retire a métrica e crie outra com uma nova chave.
+        {t('metric.typeFrozenNote')}
       </p>
 
       {error && (
@@ -273,7 +276,7 @@ export default function MetricEditor({
                   style={smallBtn}
                   disabled={busy || index === 0}
                   onClick={() => handleMove(index, -1)}
-                  aria-label={`Mover ${metric.label} para cima`}
+                  aria-label={t('metric.moveUp', { label: metric.label })}
                 >
                   ↑
                 </button>
@@ -283,7 +286,7 @@ export default function MetricEditor({
                   style={smallBtn}
                   disabled={busy || index === metrics.length - 1}
                   onClick={() => handleMove(index, 1)}
-                  aria-label={`Mover ${metric.label} para baixo`}
+                  aria-label={t('metric.moveDown', { label: metric.label })}
                 >
                   ↓
                 </button>
@@ -305,7 +308,7 @@ export default function MetricEditor({
                   opacity: metric.active ? 1 : 0.5,
                 }}
                 disabled={busy}
-                aria-label={`Rótulo de ${metric.key}`}
+                aria-label={t('metric.labelAria', { key: metric.key })}
               />
               <span
                 style={{
@@ -314,10 +317,10 @@ export default function MetricEditor({
                   whiteSpace: 'nowrap',
                 }}
               >
-                {VALUE_TYPE_LABELS[metric.value_type] ?? metric.value_type}
+                {valueTypeLabel(metric.value_type)}
                 {metric.cadence === 'weekly' &&
                   metric.cadence_day !== null &&
-                  ` · ${WEEKDAY_LABELS[metric.cadence_day]}`}
+                  ` · ${weekdayLabel(metric.cadence_day)}`}
               </span>
               <label
                 style={{
@@ -334,7 +337,7 @@ export default function MetricEditor({
                   onChange={() => handleToggleRequired(metric)}
                   disabled={busy}
                 />
-                obrigatória
+                {t('metric.required')}
               </label>
               <button
                 type="button"
@@ -343,7 +346,7 @@ export default function MetricEditor({
                 disabled={busy}
                 onClick={() => handleToggleActive(metric)}
               >
-                {metric.active ? 'Retirar' : 'Reativar'}
+                {metric.active ? t('metric.retire') : t('metric.reactivate')}
               </button>
             </div>
           ))}
@@ -355,39 +358,41 @@ export default function MetricEditor({
                 padding: '1rem 0',
               }}
             >
-              Nenhuma métrica definida.
+              {t('metric.empty')}
             </p>
           )}
         </div>
       )}
 
-      <h3 style={{ fontSize: '1rem', marginBottom: '1rem' }}>Nova métrica</h3>
+      <h3 style={{ fontSize: '1rem', marginBottom: '1rem' }}>
+        {t('metric.newTitle')}
+      </h3>
       <form
         onSubmit={handleCreate}
         style={{ display: 'flex', flexDirection: 'column' }}
       >
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
           <div className="form-group" style={{ flex: '1 1 160px' }}>
-            <label className="form-label">Chave</label>
+            <label className="form-label">{t('metric.key')}</label>
             <input
               type="text"
               value={newKey}
               onChange={(e) => setNewKey(e.target.value)}
               className="form-input"
-              placeholder="ex.: hydration_glasses"
+              placeholder={t('metric.keyPlaceholder')}
               pattern="[a-z][a-z0-9_]*"
               disabled={busy}
               required
             />
           </div>
           <div className="form-group" style={{ flex: '2 1 220px' }}>
-            <label className="form-label">Rótulo</label>
+            <label className="form-label">{t('metric.label')}</label>
             <input
               type="text"
               value={newLabel}
               onChange={(e) => setNewLabel(e.target.value)}
               className="form-input"
-              placeholder="ex.: Copos de água"
+              placeholder={t('metric.labelPlaceholder')}
               disabled={busy}
               required
             />
@@ -396,22 +401,22 @@ export default function MetricEditor({
 
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
           <div className="form-group" style={{ flex: '1 1 160px' }}>
-            <label className="form-label">Tipo</label>
+            <label className="form-label">{t('metric.typeLabel')}</label>
             <select
               value={newType}
               onChange={(e) => setNewType(e.target.value)}
               className="form-input"
               disabled={busy}
             >
-              {Object.entries(VALUE_TYPE_LABELS).map(([value, label]) => (
+              {VALUE_TYPES.map((value) => (
                 <option key={value} value={value}>
-                  {label}
+                  {t(`metric.type.${value}`)}
                 </option>
               ))}
             </select>
           </div>
           <div className="form-group" style={{ flex: '1 1 160px' }}>
-            <label className="form-label">Frequência</label>
+            <label className="form-label">{t('metric.cadence')}</label>
             <select
               value={newCadence}
               onChange={(e) =>
@@ -420,22 +425,22 @@ export default function MetricEditor({
               className="form-input"
               disabled={busy}
             >
-              <option value="daily">Diária</option>
-              <option value="weekly">Semanal</option>
+              <option value="daily">{t('metric.cadenceDaily')}</option>
+              <option value="weekly">{t('metric.cadenceWeekly')}</option>
             </select>
           </div>
           {newCadence === 'weekly' && (
             <div className="form-group" style={{ flex: '1 1 160px' }}>
-              <label className="form-label">Dia da semana</label>
+              <label className="form-label">{t('metric.weekdayLabel')}</label>
               <select
                 value={newCadenceDay}
                 onChange={(e) => setNewCadenceDay(Number(e.target.value))}
                 className="form-input"
                 disabled={busy}
               >
-                {WEEKDAY_LABELS.map((label, day) => (
-                  <option key={label} value={day}>
-                    {label}
+                {WEEKDAYS.map((day) => (
+                  <option key={day} value={day}>
+                    {t(`metric.weekday.${day}`)}
                   </option>
                 ))}
               </select>
@@ -444,16 +449,13 @@ export default function MetricEditor({
         </div>
 
         <div className="form-group">
-          <label className="form-label">
-            Configuração (JSON, opcional — ex.: {'{"min": 0, "max": 10}'} para
-            escala)
-          </label>
+          <label className="form-label">{t('metric.configLabel')}</label>
           <textarea
             value={newConfig}
             onChange={(e) => setNewConfig(e.target.value)}
             className="form-input"
             rows={2}
-            placeholder='{"options": [{"value": "normal", "label": "Normal"}]}'
+            placeholder={t('metric.configPlaceholder')}
             disabled={busy}
           />
         </div>
@@ -473,11 +475,11 @@ export default function MetricEditor({
             onChange={(e) => setNewRequired(e.target.checked)}
             disabled={busy}
           />
-          Preenchimento obrigatório
+          {t('metric.requiredCheckbox')}
         </label>
 
         <button type="submit" className="btn" disabled={busy}>
-          {busy ? 'Salvando...' : 'Criar métrica'}
+          {busy ? t('metric.saving') : t('metric.create')}
         </button>
       </form>
     </div>

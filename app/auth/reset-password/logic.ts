@@ -25,12 +25,19 @@ export function getTimeoutNextState(current: ResetState): ResetState {
   return current === 'loading' ? 'invalid' : current;
 }
 
+// Returned as dictionary keys (not display strings) so the page renders the
+// message in the active UI language.
+export type PasswordValidationError =
+  | 'reset.validation.empty'
+  | 'reset.validation.tooShort'
+  | 'reset.validation.mismatch';
+
 export function validatePasswordUpdate(
   password: string,
   confirm: string,
-): string | null {
-  if (!password || !confirm) return 'Preencha os dois campos de senha.';
-  if (password.length < 8) return 'A senha deve ter no mínimo 8 caracteres.';
-  if (password !== confirm) return 'As senhas não coincidem.';
+): PasswordValidationError | null {
+  if (!password || !confirm) return 'reset.validation.empty';
+  if (password.length < 8) return 'reset.validation.tooShort';
+  if (password !== confirm) return 'reset.validation.mismatch';
   return null;
 }

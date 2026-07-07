@@ -3,8 +3,11 @@
 import React, { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '../../components/supabaseClient';
+import { DATE_LOCALES } from '../../lib/i18n/dictionaries';
+import { useI18n } from '../../lib/i18n/I18nProvider';
 
 function SuccessContent() {
+  const { locale, t } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [ready, setReady] = useState(false);
@@ -30,7 +33,7 @@ function SuccessContent() {
           style={{ width: '32px', height: '32px', borderWidth: '3px' }}
         ></div>
         <p style={{ color: 'hsl(var(--text-secondary))', fontSize: '0.9rem' }}>
-          Verificando sessão...
+          {t('common.checkingSession')}
         </p>
       </div>
     );
@@ -38,7 +41,7 @@ function SuccessContent() {
 
   const createdAt = searchParams.get('createdAt');
   const formattedDate = createdAt
-    ? new Date(createdAt).toLocaleString('pt-BR', {
+    ? new Date(createdAt).toLocaleString(DATE_LOCALES[locale], {
         day: '2-digit',
         month: 'long',
         year: 'numeric',
@@ -90,7 +93,7 @@ function SuccessContent() {
           </svg>
         </div>
 
-        <h2 style={{ marginBottom: '0.5rem' }}>Registro salvo com sucesso.</h2>
+        <h2 style={{ marginBottom: '0.5rem' }}>{t('success.saved')}</h2>
 
         {formattedDate && (
           <p
@@ -105,7 +108,7 @@ function SuccessContent() {
         )}
 
         <button className="btn" onClick={() => router.push('/dashboard')}>
-          Novo Registro
+          {t('success.newLog')}
         </button>
       </div>
     </div>

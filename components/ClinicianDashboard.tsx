@@ -3,6 +3,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { API_ROUTES } from '../lib/constants';
 import { withRecipient } from '../lib/circles';
+import { useI18n } from '../lib/i18n/I18nProvider';
+import type { I18n } from '../lib/i18n/I18nProvider';
 import { DEFAULT_LOOKBACK, MAX_LOOKBACK } from '../services/aggregates';
 import type {
   AggregationPeriod,
@@ -10,28 +12,20 @@ import type {
   MetricSeriesPoint,
 } from '../services/aggregates';
 
-const PERIOD_LABELS: Record<AggregationPeriod, string> = {
-  daily: 'Diário',
-  weekly: 'Semanal',
-  monthly: 'Mensal',
-};
-
-const PERIOD_UNIT_LABELS: Record<AggregationPeriod, string> = {
-  daily: 'dias',
-  weekly: 'semanas',
-  monthly: 'meses',
-};
-
 const PERIODS: AggregationPeriod[] = ['daily', 'weekly', 'monthly'];
 
-function formatBucketLabel(key: string, period: AggregationPeriod): string {
+function formatBucketLabel(
+  key: string,
+  period: AggregationPeriod,
+  t: I18n['t'],
+): string {
   if (period === 'daily') {
     const [year, month, day] = key.split('-');
     return `${day}/${month}/${year}`;
   }
   if (period === 'weekly') {
     const [year, week] = key.split('-W');
-    return `Sem ${week}/${year}`;
+    return t('clinician.weekLabel', { week, year });
   }
   const [year, month] = key.split('-');
   return `${month}/${year}`;
@@ -126,11 +120,13 @@ export default function ClinicianDashboard({
   accessToken,
   recipientId,
 }: ClinicianDashboardProps) {
+  const { t } = useI18n();
   const [period, setPeriod] = useState<AggregationPeriod>('daily');
   const [lookback, setLookback] = useState<number>(DEFAULT_LOOKBACK.daily);
   const [buckets, setBuckets] = useState<AggregatesResponse['buckets']>([]);
   const [series, setSeries] = useState<MetricSeries[]>([]);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState('');
 
   const switchPeriod = (next: AggregationPeriod) => {
@@ -155,7 +151,7 @@ export default function ClinicianDashboard({
           { headers: { Authorization: `Bearer ${accessToken}` } },
         );
         if (!res.ok) {
-          setError('Não foi possível carregar os dados agregados.');
+          setError(t('clinician.loadError'));
           setBuckets([]);
           setSeries([]);
           return;
@@ -164,19 +160,50 @@ export default function ClinicianDashboard({
         setBuckets(data.buckets ?? []);
         setSeries(data.series ?? []);
       } catch {
-        setError('Erro de conexão ao carregar os dados agregados.');
+        setError(t('clinician.connError'));
         setBuckets([]);
         setSeries([]);
       } finally {
         setLoading(false);
       }
     },
-    [accessToken, recipientId],
+    [accessToken, recipientId, t],
   );
 
   useEffect(() => {
     loadAggregates(period, lookback);
   }, [period, lookback, loadAggregates]);
+
+  // Same query the table shows, as a downloaded CSV file. The blob dance is
+  // needed because the endpoint requires the Authorization header — a plain
+  // <a href> cannot carry it.
+  const handleExportCsv = async () => {
+    setExporting(true);
+    setError('');
+    try {
+      const base = `${API_ROUTES.LOG_AGGREGATES}?period=${period}&lookback=${lookback}&format=csv`;
+      const res = await fetch(
+        recipientId ? withRecipient(base, recipientId) : base,
+        { headers: { Authorization: `Bearer ${accessToken}` } },
+      );
+      if (!res.ok) {
+        setError(t('clinician.exportError'));
+        return;
+      }
+      const url = URL.createObjectURL(await res.blob());
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `care-aggregates-${period}-last-${lookback}.csv`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setError(t('clinician.exportError'));
+    } finally {
+      setExporting(false);
+    }
+  };
 
   // Newest period first — clinicians scan from the current state backwards.
   // Every series carries one point per bucket at the same index, so rows keep
@@ -195,7 +222,7 @@ export default function ClinicianDashboard({
           marginBottom: '1.5rem',
         }}
       >
-        <h2 style={{ fontSize: '1.25rem' }}>Indicadores Comportamentais</h2>
+        <h2 style={{ fontSize: '1.25rem' }}>{t('clinician.title')}</h2>
         <div
           style={{
             display: 'flex',
@@ -216,7 +243,7 @@ export default function ClinicianDashboard({
                 fontSize: '0.85rem',
               }}
             >
-              {PERIOD_LABELS[p]}
+              {t(`clinician.period.${p}`)}
             </button>
           ))}
           <label
@@ -228,7 +255,7 @@ export default function ClinicianDashboard({
               color: 'hsl(var(--text-secondary))',
             }}
           >
-            Últimos
+            {t('clinician.last')}
             <input
               type="number"
               min={1}
@@ -237,10 +264,23 @@ export default function ClinicianDashboard({
               onChange={(e) => handleLookbackChange(e.target.value)}
               className="form-input"
               style={{ width: '5rem', padding: '0.4rem 0.6rem' }}
-              aria-label="Quantidade de períodos"
+              aria-label={t('clinician.lookbackAria')}
             />
-            {PERIOD_UNIT_LABELS[period]}
+            {t(`clinician.unit.${period}`)}
           </label>
+          <button
+            type="button"
+            onClick={handleExportCsv}
+            className="btn btn-secondary"
+            disabled={exporting || loading}
+            style={{
+              width: 'auto',
+              padding: '0.45rem 1rem',
+              fontSize: '0.85rem',
+            }}
+          >
+            {exporting ? t('clinician.exporting') : t('clinician.exportCsv')}
+          </button>
         </div>
       </div>
 
@@ -262,7 +302,7 @@ export default function ClinicianDashboard({
           <p
             style={{ color: 'hsl(var(--text-secondary))', fontSize: '0.9rem' }}
           >
-            Carregando indicadores...
+            {t('clinician.loading')}
           </p>
         </div>
       ) : rows.length === 0 && !error ? (
@@ -273,7 +313,7 @@ export default function ClinicianDashboard({
             padding: '2rem 0',
           }}
         >
-          Nenhum registro no período selecionado.
+          {t('clinician.empty')}
         </p>
       ) : (
         <div style={{ overflowX: 'auto' }}>
@@ -281,9 +321,9 @@ export default function ClinicianDashboard({
             <thead>
               <tr>
                 <th style={{ ...headerCellStyle, textAlign: 'left' }}>
-                  Período
+                  {t('clinician.periodColumn')}
                 </th>
-                <th style={headerCellStyle}>Registros</th>
+                <th style={headerCellStyle}>{t('clinician.logsColumn')}</th>
                 {series.map((s) => (
                   <th key={s.key} style={headerCellStyle}>
                     {seriesHeader(s)}
@@ -295,7 +335,7 @@ export default function ClinicianDashboard({
               {rows.map(({ bucket, index }) => (
                 <tr key={bucket.key}>
                   <td style={{ ...cellStyle, textAlign: 'left' }}>
-                    {formatBucketLabel(bucket.key, period)}
+                    {formatBucketLabel(bucket.key, period, t)}
                   </td>
                   <td style={cellStyle}>{bucket.logCount}</td>
                   {series.map((s) => (

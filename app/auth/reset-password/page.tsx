@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../../components/supabaseClient';
+import { useI18n } from '../../../lib/i18n/I18nProvider';
 import { clientLogger } from '../../../services/clientLogger';
 import {
   INITIAL_STATE,
@@ -24,6 +25,7 @@ const linkStyle: React.CSSProperties = {
 };
 
 export default function ResetPasswordPage() {
+  const { t } = useI18n();
   const [resetState, setResetState] = useState<ResetState>(INITIAL_STATE);
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -75,7 +77,7 @@ export default function ResetPasswordPage() {
 
     const err = validatePasswordUpdate(password, confirm);
     if (err) {
-      setValidationError(err);
+      setValidationError(t(err));
       return;
     }
 
@@ -88,7 +90,7 @@ export default function ResetPasswordPage() {
         { service: 'auth', route: '/auth/reset-password' },
         updateError,
       );
-      setSubmitError('Não foi possível redefinir a senha. Tente novamente.');
+      setSubmitError(t('reset.failed'));
       setSubmitting(false);
       return;
     }
@@ -110,7 +112,9 @@ export default function ResetPasswordPage() {
       >
         <div className="card" style={{ textAlign: 'center' }}>
           <div className="spinner" style={{ margin: '0 auto 1rem' }} />
-          <p style={{ color: 'hsl(var(--text-secondary))' }}>Verificando...</p>
+          <p style={{ color: 'hsl(var(--text-secondary))' }}>
+            {t('reset.checking')}
+          </p>
         </div>
       </main>
     );
@@ -124,17 +128,14 @@ export default function ResetPasswordPage() {
       >
         <div className="card">
           <div className="alert alert-error" style={{ marginBottom: '1.5rem' }}>
-            <span>
-              Link inválido ou expirado. Solicite um novo link de redefinição de
-              senha.
-            </span>
+            <span>{t('reset.invalidLink')}</span>
           </div>
           <button
             type="button"
             className="btn"
             onClick={() => router.push('/auth')}
           >
-            Voltar ao login
+            {t('common.backToLogin')}
           </button>
         </div>
       </main>
@@ -149,12 +150,12 @@ export default function ResetPasswordPage() {
       >
         <div className="card" style={{ textAlign: 'center' }}>
           <div className="alert alert-success" style={{ marginBottom: '1rem' }}>
-            <span>Senha redefinida com sucesso.</span>
+            <span>{t('reset.success')}</span>
           </div>
           <p
             style={{ color: 'hsl(var(--text-secondary))', fontSize: '0.9rem' }}
           >
-            Redirecionando para o login...
+            {t('reset.redirecting')}
           </p>
         </div>
       </main>
@@ -168,7 +169,7 @@ export default function ResetPasswordPage() {
     >
       <div className="card">
         <h1 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>
-          Redefinir Senha
+          {t('login.resetTitle')}
         </h1>
 
         {submitError && (
@@ -182,7 +183,7 @@ export default function ResetPasswordPage() {
           style={{ display: 'flex', flexDirection: 'column' }}
         >
           <div className="form-group">
-            <label className="form-label">Nova senha</label>
+            <label className="form-label">{t('reset.newPassword')}</label>
             <input
               type="password"
               value={password}
@@ -194,7 +195,7 @@ export default function ResetPasswordPage() {
             />
           </div>
           <div className="form-group" style={{ marginBottom: '0.5rem' }}>
-            <label className="form-label">Confirmar nova senha</label>
+            <label className="form-label">{t('reset.confirmPassword')}</label>
             <input
               type="password"
               value={confirm}
@@ -224,7 +225,7 @@ export default function ResetPasswordPage() {
             disabled={submitting}
             style={{ marginTop: '1rem' }}
           >
-            {submitting ? 'Redefinindo...' : 'Redefinir senha'}
+            {submitting ? t('reset.submitting') : t('reset.submit')}
           </button>
         </form>
 
@@ -234,7 +235,7 @@ export default function ResetPasswordPage() {
             onClick={() => router.push('/auth')}
             style={linkStyle}
           >
-            Voltar ao login
+            {t('common.backToLogin')}
           </button>
         </div>
       </div>

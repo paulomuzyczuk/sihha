@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useI18n } from '../../lib/i18n/I18nProvider';
 
 interface SleepInputProps {
   value: { start: string; end: string };
@@ -23,19 +24,20 @@ export default function SleepInput({
   onChange,
   disabled,
 }: SleepInputProps) {
+  const { t } = useI18n();
   const hours = computeHours(value.start, value.end);
   const overLimit = hours !== null && hours >= 14;
 
   return (
     <div className="form-group">
-      <label className="form-label">Horários de Sono</label>
+      <label className="form-label">{t('sleep.title')}</label>
       <div style={{ display: 'flex', gap: '1rem' }}>
         <div style={{ flex: 1 }}>
           <label
             className="form-label"
             style={{ fontSize: '0.8rem', marginBottom: '0.25rem' }}
           >
-            Hora de Dormir
+            {t('sleep.bedtime')}
           </label>
           <input
             type="time"
@@ -50,7 +52,7 @@ export default function SleepInput({
             className="form-label"
             style={{ fontSize: '0.8rem', marginBottom: '0.25rem' }}
           >
-            Hora de Acordar
+            {t('sleep.wakeTime')}
           </label>
           <input
             type="time"
@@ -72,8 +74,8 @@ export default function SleepInput({
           }}
         >
           {overLimit
-            ? `${hours.toFixed(1)}h — verifique os horários (14+ horas é improvável)`
-            : `${hours.toFixed(1)} horas de sono`}
+            ? t('sleep.overLimit', { hours: hours.toFixed(1) })
+            : t('sleep.hours', { hours: hours.toFixed(1) })}
         </p>
       )}
     </div>

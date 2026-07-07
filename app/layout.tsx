@@ -1,5 +1,6 @@
 import './globals.css';
 import type { Metadata } from 'next';
+import { I18nProvider } from '../lib/i18n/I18nProvider';
 
 export const metadata: Metadata = {
   title: 'Caretaking Platform',
@@ -18,7 +19,9 @@ export default function RootLayout({
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
-      <body>{children}</body>
+      <body>
+        <I18nProvider>{children}</I18nProvider>
+      </body>
     </html>
   );
 }

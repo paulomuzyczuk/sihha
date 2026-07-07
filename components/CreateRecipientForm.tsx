@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { API_ROUTES } from '../lib/constants';
+import { useI18n } from '../lib/i18n/I18nProvider';
 
 interface TemplateOption {
   id: string;
@@ -25,6 +26,7 @@ interface CreateRecipientFormProps {
 export default function CreateRecipientForm({
   accessToken,
 }: CreateRecipientFormProps) {
+  const { t } = useI18n();
   const [templates, setTemplates] = useState<TemplateOption[]>([]);
   const [templateId, setTemplateId] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -42,7 +44,7 @@ export default function CreateRecipientForm({
           headers: { Authorization: `Bearer ${accessToken}` },
         });
         if (!res.ok) {
-          setError('Não foi possível carregar os modelos.');
+          setError(t('recipient.loadTemplatesFailed'));
           return;
         }
         const data = await res.json();
@@ -50,11 +52,11 @@ export default function CreateRecipientForm({
         setTemplates(fetched);
         if (fetched.length > 0) setTemplateId(fetched[0].id);
       } catch {
-        setError('Erro de conexão ao carregar os modelos.');
+        setError(t('recipient.connErrorTemplates'));
       }
     };
     loadTemplates();
-  }, [accessToken]);
+  }, [accessToken, t]);
 
   const selectedTemplate = templates.find((t) => t.id === templateId);
 
@@ -81,19 +83,22 @@ export default function CreateRecipientForm({
       if (!res.ok) {
         setError(
           res.status === 400
-            ? 'Dados inválidos. Verifique o nome e o fuso horário.'
-            : 'Não foi possível criar o círculo. Tente novamente.',
+            ? t('recipient.invalidData')
+            : t('recipient.createFailed'),
         );
         return;
       }
 
       const data = await res.json();
       setMessage(
-        `Círculo "${data.recipient.displayName}" criado com ${data.metricCount} métricas. Convide os membros na aba "Convidar Usuário".`,
+        t('recipient.created', {
+          name: data.recipient.displayName,
+          count: data.metricCount,
+        }),
       );
       setDisplayName('');
     } catch {
-      setError('Erro de conexão ao criar o círculo.');
+      setError(t('recipient.connErrorCreate'));
     } finally {
       setLoading(false);
     }
@@ -102,7 +107,7 @@ export default function CreateRecipientForm({
   return (
     <div className="card" style={{ maxWidth: '480px', width: '100%' }}>
       <h2 style={{ fontSize: '1.25rem', marginBottom: '1.5rem' }}>
-        Novo Círculo de Cuidado
+        {t('recipient.title')}
       </h2>
 
       {error && (
@@ -121,7 +126,7 @@ export default function CreateRecipientForm({
         style={{ display: 'flex', flexDirection: 'column' }}
       >
         <div className="form-group">
-          <label className="form-label">Modelo</label>
+          <label className="form-label">{t('recipient.template')}</label>
           <select
             value={templateId}
             onChange={(e) => setTemplateId(e.target.value)}
@@ -142,27 +147,29 @@ export default function CreateRecipientForm({
                 marginTop: '0.5rem',
               }}
             >
-              {selectedTemplate.description} ({selectedTemplate.metricCount}{' '}
-              métricas)
+              {selectedTemplate.description}{' '}
+              {t('recipient.metricsSuffix', {
+                count: selectedTemplate.metricCount,
+              })}
             </p>
           )}
         </div>
 
         <div className="form-group">
-          <label className="form-label">Nome de quem recebe o cuidado</label>
+          <label className="form-label">{t('recipient.name')}</label>
           <input
             type="text"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             className="form-input"
-            placeholder="Nome"
+            placeholder={t('recipient.namePlaceholder')}
             disabled={loading}
             required
           />
         </div>
 
         <div className="form-group" style={{ marginBottom: '2rem' }}>
-          <label className="form-label">Fuso horário</label>
+          <label className="form-label">{t('recipient.timezone')}</label>
           <input
             type="text"
             value={timezone}
@@ -175,7 +182,7 @@ export default function CreateRecipientForm({
         </div>
 
         <button type="submit" className="btn" disabled={loading || !templateId}>
-          {loading ? 'Criando círculo...' : 'Criar círculo'}
+          {loading ? t('recipient.submitting') : t('recipient.submit')}
         </button>
       </form>
     </div>

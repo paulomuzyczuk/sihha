@@ -2,21 +2,40 @@
 
 import React, { useState } from 'react';
 import { API_ROUTES } from '../lib/constants';
+import { useI18n } from '../lib/i18n/I18nProvider';
+import type { TranslationKey } from '../lib/i18n/dictionaries';
 
 type InviteProfile = 'therapist' | 'psychologist' | 'psychiatrist' | 'patient';
 
 // The admin thinks in professions; the API thinks in care-circle roles (M3).
 // This single mapping bridges the two: the profession becomes the member
-// label, the care role decides authorization.
+// label (in the admin's active UI language), the care role decides
+// authorization.
 const PROFILE_OPTIONS: Array<{
   value: InviteProfile;
-  label: string;
+  labelKey: TranslationKey;
   careRole: 'caregiver' | 'clinician' | 'recipient';
 }> = [
-  { value: 'therapist', label: 'Terapeuta', careRole: 'caregiver' },
-  { value: 'psychologist', label: 'Psicóloga', careRole: 'clinician' },
-  { value: 'psychiatrist', label: 'Psiquiatra', careRole: 'clinician' },
-  { value: 'patient', label: 'Paciente', careRole: 'recipient' },
+  {
+    value: 'therapist',
+    labelKey: 'invite.profile.therapist',
+    careRole: 'caregiver',
+  },
+  {
+    value: 'psychologist',
+    labelKey: 'invite.profile.psychologist',
+    careRole: 'clinician',
+  },
+  {
+    value: 'psychiatrist',
+    labelKey: 'invite.profile.psychiatrist',
+    careRole: 'clinician',
+  },
+  {
+    value: 'patient',
+    labelKey: 'invite.profile.patient',
+    careRole: 'recipient',
+  },
 ];
 
 interface InviteUserFormProps {
@@ -29,6 +48,7 @@ interface InviteUserFormProps {
  * public sign-up + approval flow.
  */
 export default function InviteUserForm({ accessToken }: InviteUserFormProps) {
+  const { t } = useI18n();
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
   const [profile, setProfile] = useState<InviteProfile>('therapist');
@@ -56,24 +76,27 @@ export default function InviteUserForm({ accessToken }: InviteUserFormProps) {
           member_label:
             profile === 'patient'
               ? undefined
-              : PROFILE_OPTIONS.find((opt) => opt.value === profile)!.label,
+              : t(
+                  PROFILE_OPTIONS.find((opt) => opt.value === profile)!
+                    .labelKey,
+                ),
         }),
       });
 
       if (res.status === 409) {
-        setError('Este e-mail já possui uma conta.');
+        setError(t('invite.emailExists'));
         return;
       }
       if (!res.ok) {
-        setError('Não foi possível enviar o convite. Tente novamente.');
+        setError(t('invite.failed'));
         return;
       }
 
-      setMessage(`Convite enviado para ${email.trim()}.`);
+      setMessage(t('invite.sent', { email: email.trim() }));
       setEmail('');
       setFullName('');
     } catch {
-      setError('Erro de conexão ao enviar o convite.');
+      setError(t('invite.connError'));
     } finally {
       setLoading(false);
     }
@@ -82,7 +105,7 @@ export default function InviteUserForm({ accessToken }: InviteUserFormProps) {
   return (
     <div className="card" style={{ maxWidth: '480px', width: '100%' }}>
       <h2 style={{ fontSize: '1.25rem', marginBottom: '1.5rem' }}>
-        Convidar Usuário
+        {t('invite.title')}
       </h2>
 
       {error && (
@@ -101,33 +124,33 @@ export default function InviteUserForm({ accessToken }: InviteUserFormProps) {
         style={{ display: 'flex', flexDirection: 'column' }}
       >
         <div className="form-group">
-          <label className="form-label">Nome completo</label>
+          <label className="form-label">{t('invite.fullName')}</label>
           <input
             type="text"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             className="form-input"
-            placeholder="Nome Sobrenome"
+            placeholder={t('invite.fullNamePlaceholder')}
             disabled={loading}
             required
           />
         </div>
 
         <div className="form-group">
-          <label className="form-label">Endereço de e-mail</label>
+          <label className="form-label">{t('login.email')}</label>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="form-input"
-            placeholder="cuidador@dominio.com"
+            placeholder={t('login.emailPlaceholder')}
             disabled={loading}
             required
           />
         </div>
 
         <div className="form-group" style={{ marginBottom: '2rem' }}>
-          <label className="form-label">Perfil</label>
+          <label className="form-label">{t('invite.profileLabel')}</label>
           <select
             value={profile}
             onChange={(e) => setProfile(e.target.value as InviteProfile)}
@@ -136,14 +159,14 @@ export default function InviteUserForm({ accessToken }: InviteUserFormProps) {
           >
             {PROFILE_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
-                {opt.label}
+                {t(opt.labelKey)}
               </option>
             ))}
           </select>
         </div>
 
         <button type="submit" className="btn" disabled={loading}>
-          {loading ? 'Enviando convite...' : 'Enviar convite'}
+          {loading ? t('invite.submitting') : t('invite.submit')}
         </button>
       </form>
     </div>

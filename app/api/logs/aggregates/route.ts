@@ -11,15 +11,19 @@ import {
   MAX_LOOKBACK,
   lookbackWindowDays,
 } from '../../../../services/aggregates';
+import { aggregatesToCsv } from '../../../../services/aggregatesCsv';
 import { logger } from '../../../../services/logger';
 
 // `lookback` = how many periods into the past to cover ("last N days/weeks/
 // months"), user-defined on the dashboard. Bounds are validated against the
 // selected period after parsing, since the maximum differs per period.
+// `format=csv` returns the same aggregate data as a downloadable file — still
+// aggregates only, so the export carries no more than the dashboard shows.
 const QuerySchema = z
   .object({
     period: z.enum(['daily', 'weekly', 'monthly']).default('daily'),
     lookback: z.coerce.number().int().min(1).optional(),
+    format: z.enum(['json', 'csv']).default('json'),
   })
   .refine(
     (q) => q.lookback === undefined || q.lookback <= MAX_LOOKBACK[q.period],
@@ -38,6 +42,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const parsed = QuerySchema.safeParse({
     period: req.nextUrl.searchParams.get('period') ?? undefined,
     lookback: req.nextUrl.searchParams.get('lookback') ?? undefined,
+    format: req.nextUrl.searchParams.get('format') ?? undefined,
   });
   if (!parsed.success) {
     return NextResponse.json(
@@ -45,7 +50,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       { status: 400 },
     );
   }
-  const { period } = parsed.data;
+  const { period, format } = parsed.data;
   const lookback = parsed.data.lookback ?? DEFAULT_LOOKBACK[period];
 
   const since = new Date(
@@ -95,6 +100,21 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     (data ?? []) as CareLogEntryValuesRow[],
     period,
   );
+
+  if (format === 'csv') {
+    // Neutral filename on purpose — no recipient name, so a downloaded file
+    // sitting in a shared machine's folder does not itself leak who it is
+    // about. BOM keeps Excel from misreading UTF-8 metric labels.
+    const filename = `care-aggregates-${period}-last-${lookback}.csv`;
+    return new NextResponse('\ufeff' + aggregatesToCsv({ buckets, series }), {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Cache-Control': 'no-store',
+      },
+    });
+  }
 
   return NextResponse.json({ period, lookback, buckets, series });
 }

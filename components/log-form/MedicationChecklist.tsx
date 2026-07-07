@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useI18n } from '../../lib/i18n/I18nProvider';
 import { MedicationChecklistItem, MedicationOption } from '../../lib/types';
 
 interface MedicationChecklistProps {
@@ -16,14 +17,15 @@ export default function MedicationChecklist({
   onChange,
   disabled,
 }: MedicationChecklistProps) {
+  const { t } = useI18n();
   if (medications.length === 0) {
     const taken = checklist[0]?.taken ?? false;
     return (
       <div className="form-group">
-        <label className="form-label">Medicamentos Administrados</label>
+        <label className="form-label">{t('meds.title')}</label>
         <div className="switch-container">
           <span className="form-label" style={{ margin: 0 }}>
-            Medicamentos administrados conforme prescrição
+            {t('meds.asPrescribed')}
           </span>
           <label className="switch">
             <input
@@ -52,11 +54,14 @@ export default function MedicationChecklist({
 
   return (
     <div className="form-group">
-      <label className="form-label">Medicamentos Administrados</label>
+      <label className="form-label">{t('meds.title')}</label>
       {checklist.map((item, index) => (
         <div key={item.name} className="switch-container">
           <span className="form-label" style={{ margin: 0 }}>
-            {item.name} ({item.prescribedDosage} comprimidos/dia)
+            {t('meds.perDay', {
+              name: item.name,
+              dosage: item.prescribedDosage,
+            })}
           </span>
           <label className="switch">
             <input
