@@ -240,7 +240,7 @@ export const pt = {
   'contract.reward':
     'A cada mês, ao cumprir as metas combinadas com a sua equipe, você recebe a mesada acordada para apoiar esse caminho. Essas metas são definidas a partir dos compromissos deste acordo de convivência.',
   'contract.reviewNote':
-    'Estes termos serão revistos a cada 6 meses e poderão ser flexibilizados conforme a avaliação da equipe de cuidado.',
+    'Estes termos serão revistos a cada [período combinado] e poderão ser flexibilizados conforme a avaliação da equipe de cuidado.',
   'contract.footer':
     'Combinado e assinado junto com a sua equipe de cuidado e testemunhas.',
 
@@ -710,7 +710,7 @@ export const en: Record<TranslationKey, string> = {
   'contract.reward':
     'Each month, by meeting the goals agreed with your team, you receive the agreed allowance to support that path. These goals are set from the commitments in this care agreement.',
   'contract.reviewNote':
-    'These terms are reviewed every 6 months and may be eased as the care team sees fit.',
+    'These terms are reviewed every [agreed period] and may be eased as the care team sees fit.',
   'contract.footer':
     'Agreed and signed together with your care team and witnesses.',
 
