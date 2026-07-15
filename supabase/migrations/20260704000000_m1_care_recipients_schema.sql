@@ -1,5 +1,5 @@
--- M1 of the care-recipients design (docs/architecture.md): purely
--- additive schema. No existing table changes
+-- M1 of the care-recipients design (docs/design/2026-07-04-care-recipients-
+-- and-templates.md): purely additive schema. No existing table changes
 -- semantics; the application keeps running on the legacy tables until M3.
 -- Seeding (flagship recipient, memberships, metric definitions) is done by
 -- scripts/seed-m1.ts, not here — no personal data in migrations.

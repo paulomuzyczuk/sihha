@@ -13,9 +13,9 @@ describe('Frontend Form Logic Validation', () => {
   });
 
   describe('Invoice File Upload Checks', () => {
-    const maxBytes = 5 * 1024 * 1024; // 5MB
+    const maxBytes = 15 * 1024 * 1024; // 15MB
 
-    it('should allow file smaller than or equal to 5MB with correct MIME type', () => {
+    it('should allow file smaller than or equal to 15MB with correct MIME type', () => {
       const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
 
       allowedTypes.forEach((mimeType) => {
@@ -29,7 +29,7 @@ describe('Frontend Form Logic Validation', () => {
       });
     });
 
-    it('should reject file exceeding 5MB', () => {
+    it('should reject file exceeding 15MB', () => {
       const file = {
         size: maxBytes + 1,
         type: 'application/pdf',

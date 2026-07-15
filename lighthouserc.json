@@ -1,0 +1,20 @@
+{
+  "_comment": "Config for the disabled, non-blocking Lighthouse CI stub (see .github/workflows/ci.yml `lighthouse` job). All assertions are 'warn' — advisory only, never a hard gate — because lab timing is variable (software-craft: production-load-testing). Median of 3 runs. Enable the job and tighten thresholds once Vercel Speed Insights shows real-user headroom. /login is used because it renders without an authenticated session.",
+  "ci": {
+    "collect": {
+      "startServerCommand": "pnpm start",
+      "url": ["http://localhost:3000/login"],
+      "numberOfRuns": 3,
+      "settings": { "preset": "desktop" }
+    },
+    "assert": {
+      "assertions": {
+        "categories:performance": ["warn", { "minScore": 0.8 }],
+        "largest-contentful-paint": ["warn", { "maxNumericValue": 3000 }],
+        "cumulative-layout-shift": ["warn", { "maxNumericValue": 0.1 }],
+        "total-blocking-time": ["warn", { "maxNumericValue": 300 }]
+      }
+    },
+    "upload": { "target": "temporary-public-storage" }
+  }
+}

@@ -15,15 +15,6 @@ import type { ResetState } from './logic';
 
 const TIMEOUT_MS = 5000;
 
-const linkStyle: React.CSSProperties = {
-  background: 'none',
-  border: 'none',
-  color: 'hsl(var(--text-secondary))',
-  cursor: 'pointer',
-  textDecoration: 'underline',
-  fontSize: '0.85rem',
-};
-
 export default function ResetPasswordPage() {
   const { t } = useI18n();
   const [resetState, setResetState] = useState<ResetState>(INITIAL_STATE);
@@ -112,9 +103,7 @@ export default function ResetPasswordPage() {
       >
         <div className="card" style={{ textAlign: 'center' }}>
           <div className="spinner" style={{ margin: '0 auto 1rem' }} />
-          <p style={{ color: 'hsl(var(--text-secondary))' }}>
-            {t('reset.checking')}
-          </p>
+          <p style={{ color: 'var(--text-muted)' }}>{t('reset.checking')}</p>
         </div>
       </main>
     );
@@ -132,7 +121,7 @@ export default function ResetPasswordPage() {
           </div>
           <button
             type="button"
-            className="btn"
+            className="btn btn-primary btn-block"
             onClick={() => router.push('/auth')}
           >
             {t('common.backToLogin')}
@@ -152,9 +141,7 @@ export default function ResetPasswordPage() {
           <div className="alert alert-success" style={{ marginBottom: '1rem' }}>
             <span>{t('reset.success')}</span>
           </div>
-          <p
-            style={{ color: 'hsl(var(--text-secondary))', fontSize: '0.9rem' }}
-          >
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
             {t('reset.redirecting')}
           </p>
         </div>
@@ -168,9 +155,7 @@ export default function ResetPasswordPage() {
       style={{ minHeight: '100vh', padding: '1.5rem' }}
     >
       <div className="card">
-        <h1 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>
-          {t('login.resetTitle')}
-        </h1>
+        <h2 style={{ marginBottom: '1.5rem' }}>{t('login.resetTitle')}</h2>
 
         {submitError && (
           <div className="alert alert-error">
@@ -210,7 +195,7 @@ export default function ResetPasswordPage() {
           {validationError && (
             <p
               style={{
-                color: 'hsl(var(--error))',
+                color: 'var(--danger-ink)',
                 fontSize: '0.85rem',
                 marginBottom: '1rem',
               }}
@@ -221,7 +206,7 @@ export default function ResetPasswordPage() {
 
           <button
             type="submit"
-            className="btn"
+            className="btn btn-primary btn-block"
             disabled={submitting}
             style={{ marginTop: '1rem' }}
           >
@@ -232,8 +217,8 @@ export default function ResetPasswordPage() {
         <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
           <button
             type="button"
+            className="btn-link"
             onClick={() => router.push('/auth')}
-            style={linkStyle}
           >
             {t('common.backToLogin')}
           </button>

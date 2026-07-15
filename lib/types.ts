@@ -14,7 +14,8 @@ export interface Location {
 export interface MedicationChecklistItem {
   name: string;
   prescribedDosage: number;
-  taken: boolean;
+  /** null while unanswered (tri-state) — the API only accepts booleans */
+  taken: boolean | null;
 }
 
 export interface ExerciseEntry {
@@ -35,7 +36,7 @@ export interface SleepData {
 
 export interface HouseholdTasks {
   // Daily — always required
-  fedPet: boolean;
+  fedNatasha: boolean;
   cleanedLitter: boolean;
   tookTrash: boolean;
   madeBed: boolean;

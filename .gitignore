@@ -31,6 +31,7 @@ out
 # Production build artifacts
 dist
 build
+tsconfig.tsbuildinfo
 
 # Environment files
 .env
@@ -50,6 +51,7 @@ build
 *.sw?
 .DS_Store
 supabase/.temp/
+supabase/.branches/
 .vercel
 .env*
 !analytics/lightdash/.env.example
@@ -59,8 +61,6 @@ analytics/target/
 analytics/dbt_packages/
 analytics/logs/
 
-# root env template must ship with the public repo
-!.env.example
-
-# TypeScript incremental build state
-tsconfig.tsbuildinfo
+# Psychometric laudos and extracted result tables are PHI — their home is
+# the psychometric_results table, never git (see scripts/import-psychometrics.ts)
+analytics/psychometric_tests/

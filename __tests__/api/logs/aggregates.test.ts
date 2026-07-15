@@ -1,7 +1,11 @@
 import { NextRequest } from 'next/server';
 import { GET } from '../../../app/api/logs/aggregates/route';
 import { resetRateLimiter } from '../../../services/rateLimiter';
-import { chain, membershipRows } from '../../helpers/careTeamMock';
+import {
+  chain,
+  membershipRows,
+  RECIPIENT_ROW,
+} from '../../helpers/careTeamMock';
 import type { MetricSeries } from '../../../services/aggregates';
 
 const mockGetUser = jest.fn();
@@ -30,12 +34,30 @@ function makeRequest(
   return new NextRequest(url, { method: 'GET', headers });
 }
 
-function mockRole(role: 'owner' | 'caregiver' | 'clinician' | 'recipient') {
+function mockRole(
+  role: 'owner' | 'caregiver' | 'clinician' | 'recipient',
+  appMetadataRole?: string,
+) {
   mockGetUser.mockResolvedValue({
-    data: { user: { id: 'user-1', email: 'u@example.com' } },
+    data: {
+      user: {
+        id: 'user-1',
+        email: 'u@example.com',
+        ...(appMetadataRole && { app_metadata: { role: appMetadataRole } }),
+      },
+    },
     error: null,
   });
   adminTables['care_team_members'] = chain({ data: membershipRows(role) });
+}
+
+function makeViewAsRequest(viewAs: string): NextRequest {
+  const url = new URL('http://localhost/api/logs/aggregates');
+  url.searchParams.set('view_as', viewAs);
+  return new NextRequest(url, {
+    method: 'GET',
+    headers: { Authorization: 'Bearer valid-token' },
+  });
 }
 
 // A representative slice of the flagship definitions — one metric per
@@ -77,8 +99,8 @@ const METRIC_DEFS = [
     sort_order: 4,
   },
   {
-    key: 'fed_pet',
-    label: 'Alimentou o pet',
+    key: 'fed_natasha',
+    label: 'Alimentou a Natasha',
     value_type: 'boolean',
     config: {},
     sort_order: 5,
@@ -94,7 +116,7 @@ function makeEntry(createdAt: string, mood: number) {
       sleep: { start: '22:00', end: '06:00', hours: 8 },
       exercise_type: 'walking',
       exercise_minutes: 30,
-      fed_pet: true,
+      fed_natasha: true,
       // a value with no metric definition must never reach the response
       notes: 'sensitive free text',
     },
@@ -120,6 +142,59 @@ describe('GET /api/logs/aggregates (M4: generic per-metric series)', () => {
     expect((await GET(makeRequest('daily'))).status).toBe(403);
     mockRole('recipient');
     expect((await GET(makeRequest('daily'))).status).toBe(403);
+  });
+
+  it('lets the platform admin preview via view_as (role-view switcher)', async () => {
+    mockRole('caregiver', 'ADMIN');
+    const res = await GET(makeViewAsRequest('clinician'));
+    expect(res.status).toBe(200);
+  });
+
+  it('returns 403 when a non-admin sends view_as — users are locked to their role', async () => {
+    mockRole('caregiver');
+    expect((await GET(makeViewAsRequest('clinician'))).status).toBe(403);
+    // Even a value matching the stored role is rejected: view_as is admin-only
+    mockRole('clinician');
+    expect((await GET(makeViewAsRequest('clinician'))).status).toBe(403);
+  });
+
+  it('returns 403 for an invalid view_as value, even for the admin', async () => {
+    mockRole('caregiver', 'ADMIN');
+    expect((await GET(makeViewAsRequest('superuser'))).status).toBe(403);
+  });
+
+  it('view_as does not widen access beyond the allowed roles', async () => {
+    // Aggregates allow clinician|owner: an admin previewing the recipient
+    // role must still be rejected by the role check.
+    mockRole('clinician', 'ADMIN');
+    expect((await GET(makeViewAsRequest('recipient'))).status).toBe(403);
+  });
+
+  it('returns 403 when a clinician probes another circle via ?recipient=', async () => {
+    // Caller belongs to recipient-1 only; requesting recipient-2 must not
+    // resolve to a membership. This route reads care_log_entries via the
+    // service role, so the app-layer scope is the only tenant boundary.
+    mockRole('clinician');
+    const url = new URL('http://localhost/api/logs/aggregates');
+    url.searchParams.set('recipient', 'recipient-2');
+    const req = new NextRequest(url, {
+      method: 'GET',
+      headers: { Authorization: 'Bearer valid-token' },
+    });
+    expect((await GET(req)).status).toBe(403);
+  });
+
+  it('scopes both reads to the caller’s own recipient', async () => {
+    mockRole('clinician');
+    await GET(makeRequest('daily'));
+    expect(adminTables['care_log_entries'].eq).toHaveBeenCalledWith(
+      'recipient_id',
+      RECIPIENT_ROW.id,
+    );
+    expect(adminTables['metric_definitions'].eq).toHaveBeenCalledWith(
+      'recipient_id',
+      RECIPIENT_ROW.id,
+    );
   });
 
   it('returns 400 for an unknown period', async () => {
@@ -183,7 +258,7 @@ describe('GET /api/logs/aggregates (M4: generic per-metric series)', () => {
       'sleep',
       'exercise_type',
       'exercise_minutes',
-      'fed_pet',
+      'fed_natasha',
     ]);
 
     const mood = series[0];
@@ -202,8 +277,8 @@ describe('GET /api/logs/aggregates (M4: generic per-metric series)', () => {
     const exerciseMinutes = series[4];
     expect(exerciseMinutes.points[0]).toMatchObject({ count: 2, sum: 60 });
 
-    const fedPet = series[5];
-    expect(fedPet.points[0].pct).toBe(100);
+    const fedNatasha = series[5];
+    expect(fedNatasha.points[0].pct).toBe(100);
 
     const serialized = JSON.stringify(body);
     expect(serialized).not.toContain('notes');
@@ -281,10 +356,10 @@ describe('GET /api/logs/aggregates?format=csv (clinician export)', () => {
     expect(lines[0]).toBe(
       'period,logs,Humor (avg),Medicações (%),Sono (avg),' +
         'Tipo de exercício,Duração do exercício (count),' +
-        'Duração do exercício (min),Alimentou o pet (%)',
+        'Duração do exercício (min),Alimentou a Natasha (%)',
     );
-    expect(lines[1]).toBe('2026-07-01,2,3,50,8,walking:2,2,60,100');
-    expect(lines[2]).toBe('2026-07-02,1,5,50,8,walking:1,1,30,100');
+    expect(lines[1]).toBe('01/07/2026,2,3,50,8,walking:2,2,60,100');
+    expect(lines[2]).toBe('02/07/2026,1,5,50,8,walking:1,1,30,100');
   });
 
   it('allows the owner role and keeps write-side roles out', async () => {

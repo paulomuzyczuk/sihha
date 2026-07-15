@@ -308,3 +308,121 @@ describe('PATCH /api/metrics/[key] (owner update)', () => {
     expect(res.status).toBe(400);
   });
 });
+
+describe('clinician_profile scoping (M8)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    resetRateLimiter();
+    for (const key of Object.keys(adminTables)) delete adminTables[key];
+    adminTables['metric_definitions'] = chain({
+      data: EXISTING_DEFS.map(({ key, sort_order }) => ({ key, sort_order })),
+    });
+  });
+
+  it('GET reports the caller effective clinical profile', async () => {
+    mockGetUser.mockResolvedValue({
+      data: { user: { id: 'user-1' } },
+      error: null,
+    });
+    adminTables['care_team_members'] = chain({
+      data: membershipRows('clinician', undefined, 'psychologist'),
+    });
+    const res = await GET(makeRequest('GET'));
+    expect(res.status).toBe(200);
+    expect((await res.json()).clinicalProfile).toBe('psychologist');
+  });
+
+  it('GET lists the last attended appointments for a clinician', async () => {
+    mockGetUser.mockResolvedValue({
+      data: { user: { id: 'user-1' } },
+      error: null,
+    });
+    adminTables['care_team_members'] = chain({
+      data: membershipRows('clinician', undefined, 'psychiatrist'),
+    });
+    adminTables['care_log_entries'] = chain({
+      count: 0,
+      data: [{ log_date: '2026-07-10' }, { log_date: '2026-07-03' }],
+    });
+    const res = await GET(makeRequest('GET'));
+    expect(res.status).toBe(200);
+    expect((await res.json()).appointmentDates).toEqual([
+      '2026-07-10',
+      '2026-07-03',
+    ]);
+  });
+
+  it('GET returns no appointment dates for non-clinician roles', async () => {
+    mockGetUser.mockResolvedValue({
+      data: { user: { id: 'user-1' } },
+      error: null,
+    });
+    adminTables['care_team_members'] = chain({
+      data: membershipRows('caregiver'),
+    });
+    adminTables['care_log_entries'] = chain({
+      count: 0,
+      data: [{ log_date: '2026-07-10' }],
+    });
+    const res = await GET(makeRequest('GET'));
+    expect(res.status).toBe(200);
+    expect((await res.json()).appointmentDates).toEqual([]);
+  });
+
+  it('POST rejects clinician_profile on a non-clinician metric', async () => {
+    mockRole('owner');
+    const res = await POST(
+      makeRequest('POST', {
+        key: 'phq9',
+        label: 'PHQ-9',
+        value_type: 'scale',
+        config: { min: 0, max: 27 },
+        filled_by: 'caregiver',
+        clinician_profile: 'psychiatrist',
+      }),
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it('POST stores clinician_profile on a clinician metric', async () => {
+    mockRole('owner');
+    const res = await POST(
+      makeRequest('POST', {
+        key: 'phq9',
+        label: 'PHQ-9',
+        value_type: 'scale',
+        config: { min: 0, max: 27 },
+        filled_by: 'clinician',
+        clinician_profile: 'psychiatrist',
+      }),
+    );
+    expect(res.status).toBe(201);
+    expect(adminTables['metric_definitions'].insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filled_by: 'clinician',
+        clinician_profile: 'psychiatrist',
+      }),
+    );
+  });
+
+  it('PATCH rejects clinician_profile when the stored metric is not clinician-filled', async () => {
+    mockRole('owner');
+    adminTables['metric_definitions'] = chain({
+      data: {
+        key: 'mood',
+        value_type: 'scale',
+        config: { min: 1, max: 5 },
+        cadence: 'daily',
+        cadence_day: null,
+        cadence_days: null,
+        cadence_start: null,
+        filled_by: 'caregiver',
+        clinician_profile: null,
+      },
+    });
+    const res = await makePatchRequest('mood', {
+      clinician_profile: 'psychologist',
+    });
+    expect(res.status).toBe(400);
+  });
+});

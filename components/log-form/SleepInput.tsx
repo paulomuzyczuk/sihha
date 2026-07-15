@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useI18n } from '../../lib/i18n/I18nProvider';
+import { Input } from '../ui';
 
 interface SleepInputProps {
   value: { start: string; end: string };
@@ -30,47 +31,54 @@ export default function SleepInput({
 
   return (
     <div className="form-group">
-      <label className="form-label">{t('sleep.title')}</label>
-      <div style={{ display: 'flex', gap: '1rem' }}>
+      <span className="field-label">{t('sleep.title')}</span>
+      <div className="row" style={{ gap: 'var(--space-4)' }}>
         <div style={{ flex: 1 }}>
           <label
-            className="form-label"
-            style={{ fontSize: '0.8rem', marginBottom: '0.25rem' }}
+            className="field-hint"
+            style={{ display: 'block', marginBottom: 'var(--space-1)' }}
           >
             {t('sleep.bedtime')}
           </label>
-          <input
+          <Input
             type="time"
             value={value.start}
             onChange={(e) => onChange({ ...value, start: e.target.value })}
-            className="form-input"
             disabled={disabled}
           />
+          <span
+            className="field-hint"
+            style={{ display: 'block', marginTop: 'var(--space-1)' }}
+          >
+            {t('sleep.bedtimeHint')}
+          </span>
         </div>
         <div style={{ flex: 1 }}>
           <label
-            className="form-label"
-            style={{ fontSize: '0.8rem', marginBottom: '0.25rem' }}
+            className="field-hint"
+            style={{ display: 'block', marginBottom: 'var(--space-1)' }}
           >
             {t('sleep.wakeTime')}
           </label>
-          <input
+          <Input
             type="time"
             value={value.end}
             onChange={(e) => onChange({ ...value, end: e.target.value })}
-            className="form-input"
             disabled={disabled}
           />
+          <span
+            className="field-hint"
+            style={{ display: 'block', marginTop: 'var(--space-1)' }}
+          >
+            {t('sleep.wakeHint')}
+          </span>
         </div>
       </div>
       {hours !== null && (
         <p
+          className="t-sm"
           style={{
-            fontSize: '0.85rem',
-            marginTop: '0.5rem',
-            color: overLimit
-              ? 'hsl(var(--error, 0 84% 60%))'
-              : 'hsl(var(--text-secondary))',
+            color: overLimit ? 'var(--danger-ink)' : 'var(--text-muted)',
           }}
         >
           {overLimit

@@ -3,10 +3,12 @@ import { ERROR_MESSAGES } from '../../../../lib/constants';
 import { getAdminDbClient } from '../../../../services/db';
 import { authorizeCareRequest } from '../../../../services/careTeam';
 import {
+  cadenceIssue,
   configIssueForType,
   METRIC_KEY_RE,
   MetricUpdateSchema,
 } from '../../../../services/metricDefinitions';
+import { weekdayMon0FromDateStr } from '../../../../services/dynamicLog';
 import { logger } from '../../../../services/logger';
 
 // Owner edits to one metric definition (M4, design §5.4). Label, order,
@@ -53,7 +55,9 @@ export async function PATCH(
 
   const { data: current, error: currentError } = await adminDb
     .from('metric_definitions')
-    .select('key, value_type, config, cadence, cadence_day')
+    .select(
+      'key, value_type, config, cadence, cadence_day, cadence_days, cadence_start, filled_by, clinician_profile',
+    )
     .eq('recipient_id', recipient.id)
     .eq('key', key)
     .maybeSingle();
@@ -116,24 +120,68 @@ export async function PATCH(
     return NextResponse.json({ error: issue }, { status: 400 });
   }
 
-  const nextCadence = patch.cadence ?? current.cadence;
-  const nextCadenceDay =
-    patch.cadence_day !== undefined ? patch.cadence_day : current.cadence_day;
-  if (nextCadence === 'weekly' && typeof nextCadenceDay !== 'number') {
+  // A specialist scope only makes sense on clinician-filled metrics (the DB
+  // check backstops this against direct writes).
+  const nextFilledBy = patch.filled_by ?? current.filled_by;
+  const nextClinicianProfile =
+    patch.clinician_profile !== undefined
+      ? patch.clinician_profile
+      : current.clinician_profile;
+  if (nextClinicianProfile != null && nextFilledBy !== 'clinician') {
     return NextResponse.json(
-      { error: 'weekly metrics need cadence_day (0-6)' },
+      { error: 'clinician_profile requires filled_by=clinician' },
       { status: 400 },
     );
   }
+
+  const nextCadence = patch.cadence ?? current.cadence;
+  const nextCadenceDay =
+    patch.cadence_day !== undefined ? patch.cadence_day : current.cadence_day;
+  const nextCadenceDays: number[] | null | undefined =
+    patch.cadence_days !== undefined
+      ? patch.cadence_days
+      : (current.cadence_days as number[] | null);
+  const nextCadenceStart =
+    patch.cadence_start !== undefined
+      ? patch.cadence_start
+      : current.cadence_start;
+  const nextCadenceIssue = cadenceIssue({
+    cadence: nextCadence,
+    cadence_day: nextCadenceDay,
+    cadence_days: nextCadenceDays,
+    cadence_start: nextCadenceStart,
+  });
+  if (nextCadenceIssue) {
+    return NextResponse.json({ error: nextCadenceIssue }, { status: 400 });
+  }
+
+  const cadenceTouched =
+    patch.cadence !== undefined ||
+    patch.cadence_day !== undefined ||
+    patch.cadence_days !== undefined ||
+    patch.cadence_start !== undefined;
+
+  const weeklyDays =
+    nextCadence === 'weekly' && nextCadenceDays?.length
+      ? [...new Set(nextCadenceDays)].sort((a, b) => a - b)
+      : null;
 
   const { error: updateError } = await adminDb
     .from('metric_definitions')
     .update({
       ...patch,
-      ...(patch.cadence !== undefined || patch.cadence_day !== undefined
+      ...(cadenceTouched
         ? {
             cadence: nextCadence,
-            cadence_day: nextCadence === 'weekly' ? nextCadenceDay : null,
+            cadence_day:
+              nextCadence === 'weekly' && !weeklyDays
+                ? (nextCadenceDay ??
+                  (nextCadenceStart
+                    ? weekdayMon0FromDateStr(nextCadenceStart)
+                    : null))
+                : null,
+            cadence_days: weeklyDays,
+            cadence_start: nextCadence === 'daily' ? null : nextCadenceStart,
           }
         : {}),
     })

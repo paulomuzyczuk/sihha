@@ -73,13 +73,28 @@ describe('POST /api/invoices (M3: membership-scoped)', () => {
     expect(await res.json()).toEqual({ error: ERROR_MESSAGES.UNAUTHORIZED });
   });
 
-  it('should return 403 for a caregiver (not an invoice role)', async () => {
-    mockRole('caregiver');
+  it('should return 403 for a clinician (not an invoice role)', async () => {
+    mockRole('clinician');
     const res = await POST(createRequest(validPayload, 'token'));
     expect(res.status).toBe(403);
     expect(await res.json()).toEqual({
       error: 'Forbidden: Insufficient permissions',
     });
+  });
+
+  it('should insert an invoice for a caregiver (grocery-run logging)', async () => {
+    mockRole('caregiver', 'user-caregiver-1');
+    mockInsert.mockResolvedValueOnce({ error: null });
+
+    const res = await POST(createRequest(validPayload, 'token'));
+    expect(res.status).toBe(200);
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        amount: 45.5,
+        user_id: 'user-caregiver-1',
+        recipient_id: RECIPIENT_ROW.id,
+      }),
+    );
   });
 
   it('should return 400 if amount is negative', async () => {

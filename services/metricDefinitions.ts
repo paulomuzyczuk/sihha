@@ -16,7 +16,43 @@ export const METRIC_VALUE_TYPES = [
   'time_range',
   'enum',
   'medication_checklist',
+  'text',
 ] as const;
+
+// daily needs nothing; weekly takes cadence_day (legacy) or derives it from
+// cadence_start; monthly/quarterly always anchor to cadence_start.
+export const METRIC_CADENCES = [
+  'daily',
+  'weekly',
+  'monthly',
+  'quarterly',
+] as const;
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** The cadence/cadence_day(s)/cadence_start coherence rule, or null when ok. */
+export function cadenceIssue(m: {
+  cadence: (typeof METRIC_CADENCES)[number];
+  cadence_day?: number | null;
+  cadence_days?: number[] | null;
+  cadence_start?: string | null;
+}): string | null {
+  if (
+    m.cadence === 'weekly' &&
+    typeof m.cadence_day !== 'number' &&
+    !m.cadence_days?.length &&
+    !m.cadence_start
+  ) {
+    return 'weekly metrics need cadence_day (0-6), cadence_days or cadence_start';
+  }
+  if (
+    (m.cadence === 'monthly' || m.cadence === 'quarterly') &&
+    !m.cadence_start
+  ) {
+    return `${m.cadence} metrics need cadence_start (YYYY-MM-DD)`;
+  }
+  return null;
+}
 
 const ConfigSchema = z
   .object({
@@ -36,6 +72,8 @@ const ConfigSchema = z
       .max(50)
       .optional(),
     depends_on: z.string().regex(METRIC_KEY_RE).optional(),
+    depends_value: z.string().min(1).max(100).optional(),
+    anchors: z.record(z.string().min(1).max(60)).optional(),
   })
   .strict();
 
@@ -45,28 +83,59 @@ export const MetricCreateSchema = z
   .object({
     key: z.string().regex(METRIC_KEY_RE),
     label: z.string().min(1).max(200),
+    short_label: z.string().min(1).max(60).nullable().optional(),
     value_type: z.enum(METRIC_VALUE_TYPES),
     config: ConfigSchema.default({}),
-    cadence: z.enum(['daily', 'weekly']).default('daily'),
+    cadence: z.enum(METRIC_CADENCES).default('daily'),
     cadence_day: z.number().int().min(0).max(6).nullable().optional(),
+    cadence_days: z
+      .array(z.number().int().min(0).max(6))
+      .min(1)
+      .max(7)
+      .nullable()
+      .optional(),
+    cadence_start: z.string().regex(DATE_RE).nullable().optional(),
+    section: z.string().min(1).max(120).nullable().optional(),
+    subsection: z.string().min(1).max(120).nullable().optional(),
     filled_by: z
       .enum(['owner', 'caregiver', 'clinician', 'recipient'])
       .default('caregiver'),
+    clinician_profile: z
+      .enum(['psychologist', 'psychiatrist'])
+      .nullable()
+      .optional(),
     required: z.boolean().default(false),
   })
-  .refine((m) => m.cadence !== 'weekly' || typeof m.cadence_day === 'number', {
-    message: 'weekly metrics need cadence_day (0-6)',
+  .refine((m) => cadenceIssue(m) === null, {
+    message: 'custom cadences need a valid cadence_day/cadence_start',
+  })
+  .refine((m) => m.clinician_profile == null || m.filled_by === 'clinician', {
+    message: 'clinician_profile requires filled_by=clinician',
   });
 
 export const MetricUpdateSchema = z
   .object({
     label: z.string().min(1).max(200).optional(),
+    short_label: z.string().min(1).max(60).nullable().optional(),
     value_type: z.enum(METRIC_VALUE_TYPES).optional(),
     config: ConfigSchema.optional(),
-    cadence: z.enum(['daily', 'weekly']).optional(),
+    cadence: z.enum(METRIC_CADENCES).optional(),
     cadence_day: z.number().int().min(0).max(6).nullable().optional(),
+    cadence_days: z
+      .array(z.number().int().min(0).max(6))
+      .min(1)
+      .max(7)
+      .nullable()
+      .optional(),
+    cadence_start: z.string().regex(DATE_RE).nullable().optional(),
+    section: z.string().min(1).max(120).nullable().optional(),
+    subsection: z.string().min(1).max(120).nullable().optional(),
     filled_by: z
       .enum(['owner', 'caregiver', 'clinician', 'recipient'])
+      .optional(),
+    clinician_profile: z
+      .enum(['psychologist', 'psychiatrist'])
+      .nullable()
       .optional(),
     required: z.boolean().optional(),
     active: z.boolean().optional(),

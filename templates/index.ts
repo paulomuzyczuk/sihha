@@ -21,17 +21,24 @@ export interface TemplateMetric {
     | 'duration_minutes'
     | 'time_range'
     | 'enum'
-    | 'medication_checklist';
+    | 'medication_checklist'
+    | 'text';
   config?: {
     min?: number;
     max?: number;
     unit?: string;
     options?: Array<number | { value: string; label: string }>;
     depends_on?: string;
+    anchors?: Record<string, string>;
   };
   cadence?: 'daily' | 'weekly';
   cadence_day?: number;
+  section?: string;
+  /** Footnote at the bottom of the section's form page */
+  section_note?: string;
   filled_by?: 'owner' | 'caregiver' | 'clinician' | 'recipient';
+  /** Specialist scope for clinician metrics; omitted = any clinician */
+  clinician_profile?: 'psychologist' | 'psychiatrist';
   required?: boolean;
 }
 
@@ -76,7 +83,10 @@ export function templateMetricRows(
     config: metric.config ?? {},
     cadence: metric.cadence ?? 'daily',
     cadence_day: metric.cadence_day ?? null,
+    section: metric.section ?? null,
+    section_note: metric.section_note ?? null,
     filled_by: metric.filled_by ?? 'caregiver',
+    clinician_profile: metric.clinician_profile ?? null,
     required: metric.required ?? false,
     sort_order: index,
   }));

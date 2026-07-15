@@ -151,6 +151,27 @@ describe('FHIR authorization (owner-gated raw export)', () => {
       expect((await res.json()).resourceType).toBe('OperationOutcome');
     }
   });
+
+  it('403s a cross-circle raw export — owner of one circle cannot read another', async () => {
+    // The most sensitive path: FHIR is full raw PHI export. authorizeFhirRequest
+    // passes ?patient as recipientId, so an owner of recipient-1 asking for
+    // recipient-2 must not resolve to a membership → 403, not another patient's
+    // records. Covers both the search form and the $everything bundle.
+    mockRole('owner');
+    const obs = await searchObservations(
+      fhirRequest('Observation', { patient: 'recipient-2' }),
+    );
+    expect(obs.status).toBe(403);
+    expect((await obs.json()).resourceType).toBe('OperationOutcome');
+
+    resetRateLimiter();
+    mockRole('owner');
+    const bundle = await everything(
+      fhirRequest('Patient/recipient-2/$everything'),
+      { params: Promise.resolve({ id: 'recipient-2' }) },
+    );
+    expect(bundle.status).toBe(403);
+  });
 });
 
 describe('GET /api/fhir/Patient and /Patient/{id}', () => {

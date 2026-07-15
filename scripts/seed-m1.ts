@@ -1,4 +1,4 @@
-// M1 seed (docs/architecture.md):
+// M1 seed (docs/design/2026-07-04-care-recipients-and-templates.md §5):
 // creates the flagship care recipient, derives team memberships from the
 // existing JWT tiers + user_profiles, generates metric definitions that
 // mirror the current hardcoded log schema, sets the alert config, and
@@ -58,7 +58,7 @@ const PROFILE_LABELS: Record<string, string> = {
 // Legacy camelCase task keys → metric keys (^[a-z][a-z0-9_]*$). M2's backfill
 // uses this same mapping when reshaping care_logs rows into entry values.
 export const LEGACY_TASK_TO_METRIC_KEY: Record<string, string> = {
-  fedPet: 'fed_pet',
+  fedNatasha: 'fed_natasha',
   cleanedLitter: 'cleaned_litter',
   tookTrash: 'took_trash',
   madeBed: 'made_bed',

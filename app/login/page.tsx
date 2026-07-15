@@ -4,7 +4,16 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../components/supabaseClient';
 import LanguageToggle from '../../components/LanguageToggle';
+import {
+  Alert,
+  Button,
+  Field,
+  Icon,
+  Input,
+  SihhaMark,
+} from '../../components/ui';
 import { ROLES } from '../../lib/constants';
+import { loadCachedHomeRoute, persistHomeRoute } from '../../lib/homeRoute';
 import { useI18n } from '../../lib/i18n/I18nProvider';
 import { homeRouteForMemberships } from './logic';
 
@@ -25,14 +34,30 @@ async function resolveHomeRoute(appMetadataRole: string | undefined) {
 
 type AuthState = 'login' | 'forgot-password';
 
-const linkStyle: React.CSSProperties = {
-  background: 'none',
-  border: 'none',
-  color: 'hsl(var(--text-secondary))',
-  cursor: 'pointer',
-  textDecoration: 'underline',
-  fontSize: '0.85rem',
-};
+/** Warm moss brand panel — the left half of the sign-in screen. */
+function BrandAside() {
+  const { t } = useI18n();
+  return (
+    <div className="login-aside">
+      <div className="aside-brand">
+        <SihhaMark size={34} />
+        <b>sihha</b>
+        <span className="ar">صِحّة</span>
+      </div>
+      <div className="aside-hero">
+        <h1>{t('login.heroTitle')}</h1>
+        <p>{t('login.heroBody')}</p>
+      </div>
+      <div className="aside-foot">
+        <Icon name="shield" size={18} />
+        {t('login.privacyFoot')}
+      </div>
+      <div className="leaf-bg">
+        <Icon name="leaf" size={420} />
+      </div>
+    </div>
+  );
+}
 
 export default function LoginPage() {
   const { t } = useI18n();
@@ -42,16 +67,40 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  // Gates the form until we know the visitor is NOT already signed in, so a
+  // returning user never sees (and starts filling) the login form while the
+  // redirect to their home route is still resolving.
+  const [checking, setChecking] = useState(true);
   const router = useRouter();
 
   // Redirect if already authenticated
   useEffect(() => {
+    let cancelled = false;
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session) {
-        const route = await resolveHomeRoute(session.user.app_metadata?.role);
-        if (route) router.push(route);
+      if (!session) {
+        if (!cancelled) setChecking(false);
+        return;
+      }
+      // Known user: skip the membership round-trip and redirect immediately.
+      // The destination page re-validates membership, so a stale cache entry
+      // only costs one extra client-side redirect.
+      const cached = loadCachedHomeRoute(session.user.id);
+      if (cached) {
+        router.replace(cached);
+        return;
+      }
+      const route = await resolveHomeRoute(session.user.app_metadata?.role);
+      if (cancelled) return;
+      if (route) {
+        persistHomeRoute(session.user.id, route);
+        router.replace(route);
+      } else {
+        setChecking(false);
       }
     });
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   const switchState = (next: AuthState) => {
@@ -86,6 +135,7 @@ export default function LoginPage() {
       return;
     }
 
+    persistHomeRoute(data.session.user.id, route);
     router.push(route);
   };
 
@@ -110,163 +160,142 @@ export default function LoginPage() {
     setLoading(false);
   };
 
-  if (authState === 'forgot-password') {
+  if (checking) {
     return (
-      <main
-        className="flex-center"
-        style={{ minHeight: '100vh', padding: '1.5rem' }}
-      >
-        <div className="card">
-          <h1 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>
-            {t('login.resetTitle')}
-          </h1>
-          {error && (
-            <div className="alert alert-error">
-              <span>{error}</span>
-            </div>
-          )}
-          {message && (
-            <div className="alert alert-success">
-              <span>{message}</span>
-            </div>
-          )}
-          {!message && (
-            <form
-              onSubmit={handleForgotPassword}
-              style={{ display: 'flex', flexDirection: 'column' }}
-            >
-              <div className="form-group">
-                <label className="form-label">{t('login.email')}</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="form-input"
-                  placeholder={t('login.emailPlaceholder')}
-                  disabled={loading}
-                  required
-                />
-              </div>
-              <button type="submit" className="btn" disabled={loading}>
-                {loading ? t('login.sending') : t('login.sendResetLink')}
-              </button>
-            </form>
-          )}
-          <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
-            <button
-              type="button"
-              onClick={() => switchState('login')}
-              style={linkStyle}
-            >
-              {t('common.backToLogin')}
-            </button>
-          </div>
+      <div className="login">
+        <BrandAside />
+        <main className="login-form-side">
           <div
-            style={{
-              display: 'flex',
-              justifyContent: 'center',
-              marginTop: '1rem',
-            }}
+            className="flex-center"
+            style={{ flexDirection: 'column', gap: '1rem' }}
           >
-            <LanguageToggle />
+            <div
+              className="spinner"
+              style={{ width: '32px', height: '32px', borderWidth: '3px' }}
+            ></div>
+            <p className="t-sm t-muted">{t('common.checkingSession')}</p>
           </div>
-        </div>
-      </main>
+        </main>
+      </div>
     );
   }
 
   return (
-    <main
-      className="flex-center"
-      style={{ minHeight: '100vh', padding: '1.5rem' }}
-    >
-      <div className="card">
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <h1 style={{ fontSize: '2rem' }}>{t('common.brand')}</h1>
-          <p
-            style={{
-              color: 'hsl(var(--text-secondary))',
-              fontSize: '0.9rem',
-              marginTop: '0.25rem',
-            }}
-          >
-            {t('login.subtitle')}
-          </p>
+    <div className="login">
+      <BrandAside />
+
+      <main className="login-form-side">
+        <div className="login-form-card">
+          {authState === 'forgot-password' ? (
+            <>
+              <h2>{t('login.resetTitle')}</h2>
+              <p className="sub">{t('login.resetSubtitle')}</p>
+
+              {error && <Alert variant="danger">{error}</Alert>}
+              {message && <Alert variant="success">{message}</Alert>}
+
+              {!message && (
+                <form onSubmit={handleForgotPassword}>
+                  <Field label={t('login.email')} htmlFor="email-input">
+                    <Input
+                      id="email-input"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder={t('login.emailPlaceholder')}
+                      disabled={loading}
+                      required
+                    />
+                  </Field>
+                  <Button
+                    type="submit"
+                    block
+                    disabled={loading}
+                    style={{ marginTop: 'var(--space-6)' }}
+                  >
+                    {loading ? t('login.sending') : t('login.sendResetLink')}
+                  </Button>
+                </form>
+              )}
+
+              <div style={{ textAlign: 'center', marginTop: 'var(--space-6)' }}>
+                <button
+                  type="button"
+                  className="btn-link"
+                  onClick={() => switchState('login')}
+                >
+                  {t('common.backToLogin')}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <h2 style={{ marginBottom: 'var(--space-8)' }}>
+                {t('login.title')}
+              </h2>
+
+              {error && <Alert variant="danger">{error}</Alert>}
+
+              <form onSubmit={handleLogin}>
+                <Field label={t('login.email')} htmlFor="email-input">
+                  <Input
+                    id="email-input"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder={t('login.emailPlaceholder')}
+                    disabled={loading}
+                    required
+                  />
+                </Field>
+                <Field
+                  label={t('login.password')}
+                  htmlFor="password-input"
+                  labelEnd={
+                    <button
+                      type="button"
+                      className="btn-link"
+                      onClick={() => switchState('forgot-password')}
+                    >
+                      {t('login.forgot')}
+                    </button>
+                  }
+                >
+                  <Input
+                    id="password-input"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder={t('login.passwordPlaceholder')}
+                    disabled={loading}
+                    required
+                  />
+                </Field>
+
+                <Button
+                  type="submit"
+                  block
+                  disabled={loading}
+                  style={{ marginTop: 'var(--space-6)' }}
+                >
+                  {loading ? t('login.submitting') : t('login.submit')}
+                </Button>
+              </form>
+
+              <p
+                className="t-caption"
+                style={{ textAlign: 'center', marginTop: 'var(--space-8)' }}
+              >
+                {t('login.inviteOnly')}
+              </p>
+            </>
+          )}
+
+          <div className="flex-center" style={{ marginTop: 'var(--space-6)' }}>
+            <LanguageToggle />
+          </div>
         </div>
-
-        {error && (
-          <div className="alert alert-error">
-            <span>{error}</span>
-          </div>
-        )}
-
-        <form
-          onSubmit={handleLogin}
-          style={{ display: 'flex', flexDirection: 'column' }}
-        >
-          <div className="form-group">
-            <label className="form-label">{t('login.email')}</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="form-input"
-              placeholder={t('login.emailPlaceholder')}
-              disabled={loading}
-              required
-              id="email-input"
-            />
-          </div>
-
-          <div className="form-group" style={{ marginBottom: '2rem' }}>
-            <label className="form-label">{t('login.password')}</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="form-input"
-              placeholder="••••••••"
-              disabled={loading}
-              required
-              id="password-input"
-            />
-          </div>
-
-          <button type="submit" className="btn" disabled={loading}>
-            {loading ? t('login.submitting') : t('login.submit')}
-          </button>
-
-          <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
-            <button
-              type="button"
-              onClick={() => switchState('forgot-password')}
-              style={linkStyle}
-            >
-              {t('login.forgot')}
-            </button>
-          </div>
-        </form>
-
-        <p
-          style={{
-            color: 'hsl(var(--text-secondary))',
-            fontSize: '0.8rem',
-            textAlign: 'center',
-            marginTop: '1.5rem',
-          }}
-        >
-          {t('login.inviteOnly')}
-        </p>
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            marginTop: '1rem',
-          }}
-        >
-          <LanguageToggle />
-        </div>
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }

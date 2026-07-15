@@ -1,4 +1,4 @@
--- M3: membership-based client access (docs/architecture.md).
+-- M3: membership-based client access (docs/design/2026-07-04 §5.3).
 -- The application switches from JWT-tier authorization to care_team_members
 -- lookups. Client-facing policies stay minimal: users read their own
 -- memberships (login routing), caregivers insert their own log entries

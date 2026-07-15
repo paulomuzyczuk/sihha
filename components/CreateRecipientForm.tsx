@@ -13,15 +13,29 @@ interface TemplateOption {
   metricCount: number;
 }
 
+interface UserOption {
+  id: string;
+  email: string;
+}
+
+// The circles all live in one of these three places — a curated list beats
+// scrolling the full IANA registry.
+const TIMEZONES: readonly string[] = [
+  'America/Campo_Grande',
+  'America/Sao_Paulo',
+  'Europe/Berlin',
+];
+
 interface CreateRecipientFormProps {
   accessToken: string;
 }
 
 /**
  * Admin flow to create a care circle from a template (M4): pick a care
- * profile, name the recipient, set the timezone — the API instantiates the
- * recipient, its metric definitions and alert config. Members are invited
- * afterwards via the existing invite view.
+ * profile, name the recipient, set the timezone and assign the circle's
+ * owner — the API instantiates the recipient, its metric definitions, alert
+ * config and the owner membership (every circle has an explicitly assigned
+ * owner). Further members are invited afterwards via the invite view.
  */
 export default function CreateRecipientForm({
   accessToken,
@@ -29,33 +43,39 @@ export default function CreateRecipientForm({
   const { t } = useI18n();
   const [templates, setTemplates] = useState<TemplateOption[]>([]);
   const [templateId, setTemplateId] = useState('');
+  const [users, setUsers] = useState<UserOption[]>([]);
+  const [ownerId, setOwnerId] = useState('');
   const [displayName, setDisplayName] = useState('');
-  const [timezone, setTimezone] = useState(
-    () => Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
-  );
+  const [timezone, setTimezone] = useState(() => {
+    const resolved = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return TIMEZONES.includes(resolved) ? resolved : TIMEZONES[0];
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    const loadTemplates = async () => {
+    const loadOptions = async () => {
       try {
-        const res = await fetch(API_ROUTES.ADMIN_RECIPIENTS, {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        });
-        if (!res.ok) {
+        const headers = { Authorization: `Bearer ${accessToken}` };
+        const [templatesRes, usersRes] = await Promise.all([
+          fetch(API_ROUTES.ADMIN_RECIPIENTS, { headers }),
+          fetch(API_ROUTES.ADMIN_USERS, { headers }),
+        ]);
+        if (!templatesRes.ok || !usersRes.ok) {
           setError(t('recipient.loadTemplatesFailed'));
           return;
         }
-        const data = await res.json();
-        const fetched: TemplateOption[] = data.templates ?? [];
+        const fetched: TemplateOption[] =
+          (await templatesRes.json()).templates ?? [];
         setTemplates(fetched);
         if (fetched.length > 0) setTemplateId(fetched[0].id);
+        setUsers((await usersRes.json()).users ?? []);
       } catch {
         setError(t('recipient.connErrorTemplates'));
       }
     };
-    loadTemplates();
+    loadOptions();
   }, [accessToken, t]);
 
   const selectedTemplate = templates.find((t) => t.id === templateId);
@@ -76,7 +96,8 @@ export default function CreateRecipientForm({
         body: JSON.stringify({
           template_id: templateId,
           display_name: displayName.trim(),
-          timezone: timezone.trim(),
+          timezone,
+          owner_user_id: ownerId,
         }),
       });
 
@@ -143,7 +164,7 @@ export default function CreateRecipientForm({
             <p
               style={{
                 fontSize: '0.8rem',
-                color: 'hsl(var(--text-secondary))',
+                color: 'var(--text-muted)',
                 marginTop: '0.5rem',
               }}
             >
@@ -168,20 +189,48 @@ export default function CreateRecipientForm({
           />
         </div>
 
-        <div className="form-group" style={{ marginBottom: '2rem' }}>
+        <div className="form-group">
           <label className="form-label">{t('recipient.timezone')}</label>
-          <input
-            type="text"
+          <select
             value={timezone}
             onChange={(e) => setTimezone(e.target.value)}
             className="form-input"
-            placeholder="America/Manaus"
             disabled={loading}
             required
-          />
+          >
+            {TIMEZONES.map((tz) => (
+              <option key={tz} value={tz}>
+                {tz}
+              </option>
+            ))}
+          </select>
         </div>
 
-        <button type="submit" className="btn" disabled={loading || !templateId}>
+        <div className="form-group" style={{ marginBottom: '2rem' }}>
+          <label className="form-label">{t('recipient.owner')}</label>
+          <select
+            value={ownerId}
+            onChange={(e) => setOwnerId(e.target.value)}
+            className="form-input"
+            disabled={loading || users.length === 0}
+            required
+          >
+            <option value="" disabled>
+              {t('recipient.ownerPlaceholder')}
+            </option>
+            {users.map((user) => (
+              <option key={user.id} value={user.id}>
+                {user.email}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <button
+          type="submit"
+          className="btn btn-primary btn-block"
+          disabled={loading || !templateId || !ownerId}
+        >
           {loading ? t('recipient.submitting') : t('recipient.submit')}
         </button>
       </form>

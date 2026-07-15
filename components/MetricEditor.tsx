@@ -4,6 +4,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { API_ROUTES } from '../lib/constants';
 import { withRecipient } from '../lib/circles';
 import { useI18n } from '../lib/i18n/I18nProvider';
+import { DATE_LOCALES } from '../lib/i18n/dictionaries';
+import { Dialog } from './ui';
 
 // Owner-facing CRUD over the circle's metric definitions (M4, design §5.4).
 // The server enforces decision #4 (value_type freezes once referenced), so
@@ -15,13 +17,24 @@ interface MetricRow {
   label: string;
   value_type: string;
   config: Record<string, unknown>;
-  cadence: 'daily' | 'weekly';
+  cadence: 'daily' | 'weekly' | 'monthly' | 'quarterly';
   cadence_day: number | null;
+  cadence_days: number[] | null;
+  cadence_start: string | null;
+  section: string | null;
   filled_by: string;
+  clinician_profile: string | null;
   required: boolean;
   sort_order: number;
   active: boolean;
 }
+
+// Who fills the metric (owner is API-supported but not offered here) and,
+// for clinician metrics, the optional specialist scope.
+const FILLED_BY_OPTIONS = ['caregiver', 'clinician', 'recipient'] as const;
+type FilledBy = (typeof FILLED_BY_OPTIONS)[number];
+const CLINICIAN_PROFILES = ['psychologist', 'psychiatrist'] as const;
+type ClinicianProfileOption = (typeof CLINICIAN_PROFILES)[number] | '';
 
 const VALUE_TYPES = [
   'scale',
@@ -31,11 +44,31 @@ const VALUE_TYPES = [
   'time_range',
   'enum',
   'medication_checklist',
+  'text',
 ] as const;
 type ValueType = (typeof VALUE_TYPES)[number];
 
 const WEEKDAYS = [0, 1, 2, 3, 4, 5, 6] as const;
 type Weekday = (typeof WEEKDAYS)[number];
+
+// Daily needs no configuration; everything else goes through the custom
+// popup (Google-Calendar style: a repeat rule anchored to a start date).
+type Cadence = 'daily' | 'weekly' | 'monthly' | 'quarterly';
+type CustomCadence = Exclude<Cadence, 'daily'>;
+const CUSTOM_CADENCES: readonly CustomCadence[] = [
+  'weekly',
+  'monthly',
+  'quarterly',
+];
+
+const todayIso = () => {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+};
+
+const weekdayMon0Of = (iso: string) =>
+  (new Date(`${iso}T00:00:00`).getDay() + 6) % 7;
 
 interface MetricEditorProps {
   accessToken: string;
@@ -47,7 +80,7 @@ export default function MetricEditor({
   accessToken,
   recipientId,
 }: MetricEditorProps) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const [metrics, setMetrics] = useState<MetricRow[]>([]);
   const [labels, setLabels] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -58,10 +91,55 @@ export default function MetricEditor({
   const [newKey, setNewKey] = useState('');
   const [newLabel, setNewLabel] = useState('');
   const [newType, setNewType] = useState('boolean');
-  const [newCadence, setNewCadence] = useState<'daily' | 'weekly'>('daily');
-  const [newCadenceDay, setNewCadenceDay] = useState(0);
+  const [newCadence, setNewCadence] = useState<Cadence>('daily');
+  const [newCadenceStart, setNewCadenceStart] = useState(todayIso);
+  const [newCadenceDays, setNewCadenceDays] = useState<number[]>([]);
+  const [newSection, setNewSection] = useState('');
+  const [newFilledBy, setNewFilledBy] = useState<FilledBy>('caregiver');
+  const [newClinicianProfile, setNewClinicianProfile] =
+    useState<ClinicianProfileOption>('');
   const [newRequired, setNewRequired] = useState(false);
   const [newConfig, setNewConfig] = useState('');
+
+  // Custom-recurrence popup: edits a draft, applied only on "Done"
+  const [customOpen, setCustomOpen] = useState(false);
+  const [draftCadence, setDraftCadence] = useState<CustomCadence>('weekly');
+  const [draftStart, setDraftStart] = useState(todayIso);
+  const [draftDays, setDraftDays] = useState<number[]>([]);
+
+  const openCustomDialog = () => {
+    setDraftCadence(newCadence === 'daily' ? 'weekly' : newCadence);
+    setDraftStart(newCadenceStart);
+    setDraftDays(
+      newCadenceDays.length > 0
+        ? newCadenceDays
+        : [weekdayMon0Of(newCadenceStart)],
+    );
+    setCustomOpen(true);
+  };
+
+  const applyCustomDialog = () => {
+    setNewCadence(draftCadence);
+    setNewCadenceStart(draftStart);
+    setNewCadenceDays(
+      draftCadence === 'weekly' ? [...draftDays].sort((a, b) => a - b) : [],
+    );
+    setCustomOpen(false);
+  };
+
+  const toggleDraftDay = (day: number) =>
+    setDraftDays((current) =>
+      current.includes(day)
+        ? current.filter((d) => d !== day)
+        : [...current, day],
+    );
+
+  const formatLocalDate = (iso: string) =>
+    new Date(`${iso}T00:00:00`).toLocaleDateString(DATE_LOCALES[locale], {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
 
   const routeFor = useCallback(
     (path: string) => (recipientId ? withRecipient(path, recipientId) : path),
@@ -187,7 +265,15 @@ export default function MetricEditor({
           value_type: newType,
           config,
           cadence: newCadence,
-          ...(newCadence === 'weekly' ? { cadence_day: newCadenceDay } : {}),
+          ...(newCadence !== 'daily' ? { cadence_start: newCadenceStart } : {}),
+          ...(newCadence === 'weekly' && newCadenceDays.length > 0
+            ? { cadence_days: newCadenceDays }
+            : {}),
+          ...(newSection.trim() ? { section: newSection.trim() } : {}),
+          filled_by: newFilledBy,
+          ...(newFilledBy === 'clinician' && newClinicianProfile
+            ? { clinician_profile: newClinicianProfile }
+            : {}),
           required: newRequired,
         }),
       });
@@ -201,6 +287,12 @@ export default function MetricEditor({
       setNewLabel('');
       setNewConfig('');
       setNewRequired(false);
+      setNewCadence('daily');
+      setNewCadenceStart(todayIso());
+      setNewCadenceDays([]);
+      setNewSection('');
+      setNewFilledBy('caregiver');
+      setNewClinicianProfile('');
       await loadMetrics();
     } catch {
       setError(t('metric.connErrorCreate'));
@@ -217,20 +309,72 @@ export default function MetricEditor({
   const weekdayLabel = (day: number): string =>
     t(`metric.weekday.${(((day % 7) + 7) % 7) as Weekday}`);
 
+  // Row summary next to the type: "Semanal · Terça", "Mensal · a partir de
+  // 15/07/2026" — daily stays quiet.
+  const cadenceSummary = (metric: MetricRow): string => {
+    if (metric.cadence === 'daily') return '';
+    const parts: string[] = [];
+    if (metric.cadence === 'weekly') {
+      parts.push(t('metric.cadenceWeekly'));
+      if (metric.cadence_days && metric.cadence_days.length > 0) {
+        parts.push(
+          metric.cadence_days.map((day) => weekdayLabel(day)).join(', '),
+        );
+      } else if (metric.cadence_day !== null) {
+        parts.push(weekdayLabel(metric.cadence_day));
+      }
+    } else {
+      parts.push(
+        metric.cadence === 'monthly'
+          ? t('metric.cadenceMonthly')
+          : t('metric.cadenceQuarterly'),
+      );
+      if (metric.cadence_start) {
+        parts.push(
+          t('metric.fromDate', { date: formatLocalDate(metric.cadence_start) }),
+        );
+      }
+    }
+    return ` · ${parts.join(' · ')}`;
+  };
+
+  // Who fills it, shown only off the caregiver default: "Clínico · Psiquiatra"
+  const fillerSummary = (metric: MetricRow): string => {
+    if (metric.filled_by === 'caregiver') return '';
+    const parts: string[] = [];
+    if ((FILLED_BY_OPTIONS as readonly string[]).includes(metric.filled_by)) {
+      parts.push(t(`metric.filledBy.${metric.filled_by as FilledBy}`));
+    } else {
+      parts.push(metric.filled_by);
+    }
+    if (
+      metric.filled_by === 'clinician' &&
+      metric.clinician_profile &&
+      (CLINICIAN_PROFILES as readonly string[]).includes(
+        metric.clinician_profile,
+      )
+    ) {
+      parts.push(
+        t(
+          `metric.clinicianProfile.${
+            metric.clinician_profile as (typeof CLINICIAN_PROFILES)[number]
+          }`,
+        ),
+      );
+    }
+    return ` · ${parts.join(' · ')}`;
+  };
+
   const rowStyle: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
     gap: '0.5rem',
     padding: '0.5rem 0',
-    borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+    borderBottom: '1px solid var(--border-soft)',
     flexWrap: 'wrap',
   };
 
-  const smallBtn: React.CSSProperties = {
-    width: 'auto',
-    padding: '0.3rem 0.6rem',
-    fontSize: '0.8rem',
-  };
+  const smallBtn: React.CSSProperties = { width: 'auto' };
 
   return (
     <div className="card" style={{ maxWidth: '720px', width: '100%' }}>
@@ -240,7 +384,7 @@ export default function MetricEditor({
       <p
         style={{
           fontSize: '0.8rem',
-          color: 'hsl(var(--text-secondary))',
+          color: 'var(--text-muted)',
           marginBottom: '1.5rem',
         }}
       >
@@ -272,7 +416,7 @@ export default function MetricEditor({
               <div style={{ display: 'flex', gap: '0.25rem' }}>
                 <button
                   type="button"
-                  className="btn btn-secondary"
+                  className="btn btn-outline btn-sm"
                   style={smallBtn}
                   disabled={busy || index === 0}
                   onClick={() => handleMove(index, -1)}
@@ -282,7 +426,7 @@ export default function MetricEditor({
                 </button>
                 <button
                   type="button"
-                  className="btn btn-secondary"
+                  className="btn btn-outline btn-sm"
                   style={smallBtn}
                   disabled={busy || index === metrics.length - 1}
                   onClick={() => handleMove(index, 1)}
@@ -313,19 +457,18 @@ export default function MetricEditor({
               <span
                 style={{
                   fontSize: '0.75rem',
-                  color: 'hsl(var(--text-secondary))',
+                  color: 'var(--text-muted)',
                   whiteSpace: 'nowrap',
                 }}
               >
                 {valueTypeLabel(metric.value_type)}
-                {metric.cadence === 'weekly' &&
-                  metric.cadence_day !== null &&
-                  ` · ${weekdayLabel(metric.cadence_day)}`}
+                {cadenceSummary(metric)}
+                {fillerSummary(metric)}
               </span>
               <label
                 style={{
                   fontSize: '0.75rem',
-                  color: 'hsl(var(--text-secondary))',
+                  color: 'var(--text-muted)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.25rem',
@@ -341,7 +484,7 @@ export default function MetricEditor({
               </label>
               <button
                 type="button"
-                className="btn btn-secondary"
+                className="btn btn-outline btn-sm"
                 style={smallBtn}
                 disabled={busy}
                 onClick={() => handleToggleActive(metric)}
@@ -353,7 +496,7 @@ export default function MetricEditor({
           {metrics.length === 0 && (
             <p
               style={{
-                color: 'hsl(var(--text-secondary))',
+                color: 'var(--text-muted)',
                 textAlign: 'center',
                 padding: '1rem 0',
               }}
@@ -397,6 +540,17 @@ export default function MetricEditor({
               required
             />
           </div>
+          <div className="form-group" style={{ flex: '1 1 180px' }}>
+            <label className="form-label">{t('metric.section')}</label>
+            <input
+              type="text"
+              value={newSection}
+              onChange={(e) => setNewSection(e.target.value)}
+              className="form-input"
+              placeholder={t('metric.sectionPlaceholder')}
+              disabled={busy}
+            />
+          </div>
         </div>
 
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
@@ -418,35 +572,164 @@ export default function MetricEditor({
           <div className="form-group" style={{ flex: '1 1 160px' }}>
             <label className="form-label">{t('metric.cadence')}</label>
             <select
-              value={newCadence}
-              onChange={(e) =>
-                setNewCadence(e.target.value as 'daily' | 'weekly')
-              }
+              value={newCadence === 'daily' ? 'daily' : 'custom'}
+              onChange={(e) => {
+                if (e.target.value === 'daily') {
+                  setNewCadence('daily');
+                } else {
+                  openCustomDialog();
+                }
+              }}
               className="form-input"
               disabled={busy}
             >
               <option value="daily">{t('metric.cadenceDaily')}</option>
-              <option value="weekly">{t('metric.cadenceWeekly')}</option>
+              <option value="custom">{t('metric.cadenceCustom')}</option>
+            </select>
+            {newCadence !== 'daily' && (
+              <button
+                type="button"
+                className="btn-link"
+                style={{ alignSelf: 'flex-start' }}
+                onClick={openCustomDialog}
+              >
+                {newCadence === 'weekly'
+                  ? `${t('metric.cadenceWeekly')}${
+                      newCadenceDays.length > 0
+                        ? ` · ${newCadenceDays
+                            .map((day) => weekdayLabel(day))
+                            .join(', ')}`
+                        : ''
+                    }`
+                  : newCadence === 'monthly'
+                    ? t('metric.cadenceMonthly')
+                    : t('metric.cadenceQuarterly')}{' '}
+                ·{' '}
+                {t('metric.fromDate', {
+                  date: formatLocalDate(newCadenceStart),
+                })}
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+          <div className="form-group" style={{ flex: '1 1 160px' }}>
+            <label className="form-label">{t('metric.filledByLabel')}</label>
+            <select
+              value={newFilledBy}
+              onChange={(e) => {
+                const filledBy = e.target.value as FilledBy;
+                setNewFilledBy(filledBy);
+                if (filledBy !== 'clinician') setNewClinicianProfile('');
+              }}
+              className="form-input"
+              disabled={busy}
+            >
+              {FILLED_BY_OPTIONS.map((value) => (
+                <option key={value} value={value}>
+                  {t(`metric.filledBy.${value}`)}
+                </option>
+              ))}
             </select>
           </div>
-          {newCadence === 'weekly' && (
+          {newFilledBy === 'clinician' && (
             <div className="form-group" style={{ flex: '1 1 160px' }}>
-              <label className="form-label">{t('metric.weekdayLabel')}</label>
+              <label className="form-label">
+                {t('metric.clinicianProfileLabel')}
+              </label>
               <select
-                value={newCadenceDay}
-                onChange={(e) => setNewCadenceDay(Number(e.target.value))}
+                value={newClinicianProfile}
+                onChange={(e) =>
+                  setNewClinicianProfile(
+                    e.target.value as ClinicianProfileOption,
+                  )
+                }
                 className="form-input"
                 disabled={busy}
               >
-                {WEEKDAYS.map((day) => (
-                  <option key={day} value={day}>
-                    {t(`metric.weekday.${day}`)}
+                <option value="">{t('metric.clinicianProfile.any')}</option>
+                {CLINICIAN_PROFILES.map((value) => (
+                  <option key={value} value={value}>
+                    {t(`metric.clinicianProfile.${value}`)}
                   </option>
                 ))}
               </select>
             </div>
           )}
         </div>
+
+        <Dialog
+          open={customOpen}
+          title={t('metric.customTitle')}
+          onClose={() => setCustomOpen(false)}
+          footer={
+            <>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => setCustomOpen(false)}
+              >
+                {t('metric.customCancel')}
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={applyCustomDialog}
+                disabled={draftCadence === 'weekly' && draftDays.length === 0}
+              >
+                {t('metric.customDone')}
+              </button>
+            </>
+          }
+        >
+          <div className="form-group">
+            <label className="form-label">{t('metric.customRepeats')}</label>
+            <select
+              value={draftCadence}
+              onChange={(e) => setDraftCadence(e.target.value as CustomCadence)}
+              className="form-input"
+            >
+              {CUSTOM_CADENCES.map((cadence) => (
+                <option key={cadence} value={cadence}>
+                  {cadence === 'weekly'
+                    ? t('metric.cadenceWeekly')
+                    : cadence === 'monthly'
+                      ? t('metric.cadenceMonthly')
+                      : t('metric.cadenceQuarterly')}
+                </option>
+              ))}
+            </select>
+          </div>
+          {draftCadence === 'weekly' && (
+            <div className="form-group">
+              <span className="form-label">{t('metric.repeatOn')}</span>
+              <div className="pill-group">
+                {WEEKDAYS.map((day) => (
+                  <button
+                    key={day}
+                    type="button"
+                    className="pill"
+                    aria-pressed={draftDays.includes(day)}
+                    onClick={() => toggleDraftDay(day)}
+                    style={{ minHeight: 34, padding: '0 12px' }}
+                  >
+                    {weekdayLabel(day).slice(0, 3)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">{t('metric.customStart')}</label>
+            <input
+              type="date"
+              value={draftStart}
+              onChange={(e) => setDraftStart(e.target.value)}
+              className="form-input"
+            />
+          </div>
+        </Dialog>
 
         <div className="form-group">
           <label className="form-label">{t('metric.configLabel')}</label>
@@ -478,7 +761,11 @@ export default function MetricEditor({
           {t('metric.requiredCheckbox')}
         </label>
 
-        <button type="submit" className="btn" disabled={busy}>
+        <button
+          type="submit"
+          className="btn btn-primary btn-block"
+          disabled={busy}
+        >
           {busy ? t('metric.saving') : t('metric.create')}
         </button>
       </form>

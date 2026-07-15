@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SupabaseClient, User } from '@supabase/supabase-js';
-import { ERROR_MESSAGES } from '../lib/constants';
+import { ERROR_MESSAGES, ROLES } from '../lib/constants';
 import { getAdminDbClient } from './db';
 import { getAuthenticatedUser, getClientIp } from './apiAuth';
 import { checkIpRateLimit, checkUserRateLimit } from './rateLimiter';
@@ -12,6 +12,13 @@ import { checkIpRateLimit, checkUserRateLimit } from './rateLimiter';
 // membership-scoped routes.
 
 export type CareRole = 'owner' | 'caregiver' | 'clinician' | 'recipient';
+
+const CARE_ROLE_VALUES: readonly CareRole[] = [
+  'owner',
+  'caregiver',
+  'clinician',
+  'recipient',
+];
 
 export interface CareRecipientRow {
   id: string;
@@ -25,9 +32,21 @@ export interface CareRecipientRow {
   active: boolean;
 }
 
+// Clinical profiles a clinician member can carry (care_team_members
+// .clinical_profile). Distinct from the care role: profile describes the
+// specialist, role governs access. 'therapist' also exists in the column but
+// therapists join circles as caregivers, so only these two scope inputs.
+export type ClinicianProfile = 'psychologist' | 'psychiatrist';
+
+const CLINICIAN_PROFILE_VALUES: readonly ClinicianProfile[] = [
+  'psychologist',
+  'psychiatrist',
+];
+
 export interface CareMembership {
   recipient_id: string;
   role: CareRole;
+  clinical_profile: string | null;
   receives_alerts: boolean;
   care_recipients: CareRecipientRow;
 }
@@ -53,6 +72,12 @@ export type CareAuthResult =
  * memberships), otherwise the user's single membership. Users with several
  * memberships must identify the circle — the flagship deployment has one, so
  * the param stays optional there.
+ *
+ * Role preview: a `view_as` query param lets the PLATFORM ADMIN exercise the
+ * app as another circle role (the dashboard's role-view switcher). Membership
+ * in the circle is still required — view_as only replaces the stored role for
+ * this request. Everyone else is locked to their stored role: a non-admin
+ * sending view_as is rejected outright rather than silently ignored.
  */
 export async function authorizeCareRequest(
   req: NextRequest,
@@ -85,7 +110,7 @@ export async function authorizeCareRequest(
   const { data: memberships, error } = await adminDb
     .from('care_team_members')
     .select(
-      'recipient_id, role, receives_alerts, care_recipients!inner(id, display_name, kind, timezone, log_cadence, geo_lat, geo_lng, geo_radius_m, active)',
+      'recipient_id, role, clinical_profile, receives_alerts, care_recipients!inner(id, display_name, kind, timezone, log_cadence, geo_lat, geo_lng, geo_radius_m, active)',
     )
     .eq('user_id', user.id)
     .eq('care_recipients.active', true);
@@ -103,11 +128,53 @@ export async function authorizeCareRequest(
   const rows = (memberships ?? []) as unknown as CareMembership[];
   const requestedRecipient =
     opts.recipientId ?? req.nextUrl.searchParams.get('recipient');
-  const membership = requestedRecipient
+  let membership = requestedRecipient
     ? rows.find((m) => m.recipient_id === requestedRecipient)
     : rows.length === 1
       ? rows[0]
       : undefined;
+
+  const viewAs = req.nextUrl.searchParams.get('view_as');
+  if (viewAs !== null) {
+    const isPlatformAdmin = user.app_metadata?.role === ROLES.ADMIN;
+    if (!isPlatformAdmin || !CARE_ROLE_VALUES.includes(viewAs as CareRole)) {
+      return {
+        ok: false,
+        response: NextResponse.json(
+          { error: 'Forbidden: Insufficient permissions' },
+          { status: 403 },
+        ),
+      };
+    }
+    if (membership) {
+      membership = { ...membership, role: viewAs as CareRole };
+    }
+  }
+
+  // Profile preview: view_profile refines a clinician preview with the
+  // specialist perspective (psychologist/psychiatrist). Same posture as
+  // view_as — platform admin only, rejected outright otherwise — and it is
+  // only meaningful alongside view_as=clinician.
+  const viewProfile = req.nextUrl.searchParams.get('view_profile');
+  if (viewProfile !== null) {
+    const isPlatformAdmin = user.app_metadata?.role === ROLES.ADMIN;
+    if (
+      !isPlatformAdmin ||
+      viewAs !== 'clinician' ||
+      !CLINICIAN_PROFILE_VALUES.includes(viewProfile as ClinicianProfile)
+    ) {
+      return {
+        ok: false,
+        response: NextResponse.json(
+          { error: 'Forbidden: Insufficient permissions' },
+          { status: 403 },
+        ),
+      };
+    }
+    if (membership) {
+      membership = { ...membership, clinical_profile: viewProfile };
+    }
+  }
 
   if (!membership || !allowedRoles.includes(membership.role)) {
     return {

@@ -59,3 +59,71 @@ jobs:
 
       - name: Dependency audit
         run: pnpm audit --audit-level=high
+
+  # System-level performance stage (SRE test hierarchy: perf is a system test,
+  # not a unit test — kept out of the fast `pnpm test` suite). Deterministic
+  # hard gate: build, then fail if any route's First Load JS exceeds its budget.
+  # Rationale: software-craft vault handoff 2026-07-15-sihha-perf-gate-and-test-audit.
+  perf-budget:
+    name: Perf · Bundle budget
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.1.3
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://mockproject.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: mock-anon-key
+          NEXT_PUBLIC_SITE_URL: https://localhost:3000
+
+      - name: Check First Load JS budgets
+        run: pnpm budget
+
+  # Non-blocking render-time check (Core Web Vitals via Lighthouse). Scaffolded
+  # but DISABLED (`if: false`) until budgets are calibrated from real Speed
+  # Insights data — a flaky timing gate is worse than none (vault handoff, and
+  # production-load-testing: lab metrics are noisy). To enable, change `if:`
+  # below to `if: github.event_name == 'pull_request'`. Assertions live in
+  # lighthouserc.json (all "warn", never "error", so it stays advisory).
+  lighthouse:
+    name: Perf · Lighthouse (non-blocking, disabled)
+    if: false
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.1.3
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://mockproject.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: mock-anon-key
+          NEXT_PUBLIC_SITE_URL: https://localhost:3000
+
+      - name: Lighthouse CI (median of 3, advisory)
+        run: npx --yes @lhci/cli@0.14.x autorun

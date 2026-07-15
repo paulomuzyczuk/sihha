@@ -51,12 +51,12 @@ describe('GET /api/circles', () => {
         {
           recipient_id: 'recipient-1',
           role: 'caregiver',
-          care_recipients: { display_name: 'Omar', kind: 'human' },
+          care_recipients: { display_name: 'Alex Doe', kind: 'human' },
         },
         {
           recipient_id: 'recipient-2',
           role: 'owner',
-          care_recipients: { display_name: 'Rex', kind: 'pet' },
+          care_recipients: { display_name: 'Natasha', kind: 'pet' },
         },
       ],
     });
@@ -68,13 +68,15 @@ describe('GET /api/circles', () => {
       {
         recipientId: 'recipient-1',
         role: 'caregiver',
-        displayName: 'Omar',
+        clinicalProfile: null,
+        displayName: 'Alex Doe',
         kind: 'human',
       },
       {
         recipientId: 'recipient-2',
         role: 'owner',
-        displayName: 'Rex',
+        clinicalProfile: null,
+        displayName: 'Natasha',
         kind: 'pet',
       },
     ]);

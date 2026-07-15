@@ -9,6 +9,21 @@ import type {
   MetricSeries,
   MetricSeriesPoint,
 } from './aggregates';
+import { displayDate } from './dateUtils';
+
+/**
+ * The period column in the app-wide display standard: daily buckets become
+ * dd/mm/yyyy, monthly mm/yyyy; ISO weeks (2026-W28) have no day/month
+ * rendering and stay as-is.
+ */
+function bucketLabel(key: string): string {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(key)) return displayDate(key);
+  if (/^\d{4}-\d{2}$/.test(key)) {
+    const [year, month] = key.split('-');
+    return `${month}/${year}`;
+  }
+  return key;
+}
 
 /**
  * Escapes one CSV cell (RFC 4180 quoting) and neutralises spreadsheet formula
@@ -79,9 +94,9 @@ function seriesValues(
 
 /**
  * One row per bucket (ascending, same order as the aggregate result), one or
- * two columns per metric series. The first columns are the bucket key in its
- * period-native ISO form (2026-07-01 / 2026-W27 / 2026-07) and the number of
- * logs in the bucket.
+ * two columns per metric series. The first columns are the bucket in the
+ * display standard (01/07/2026 / 2026-W27 / 07/2026) and the number of logs
+ * in the bucket.
  */
 export function aggregatesToCsv(result: MetricAggregateResult): string {
   const { buckets, series } = result;
@@ -89,7 +104,7 @@ export function aggregatesToCsv(result: MetricAggregateResult): string {
   const header = ['period', 'logs', ...series.flatMap((s) => seriesColumns(s))];
 
   const rows = buckets.map((bucket, index) => [
-    bucket.key,
+    bucketLabel(bucket.key),
     bucket.logCount,
     ...series.flatMap((s) => seriesValues(s, s.points[index])),
   ]);
