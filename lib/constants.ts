@@ -78,7 +78,7 @@ export const EXERCISE_TYPES = {
 export const EXERCISE_DURATIONS = [15, 30, 45, 60, 90] as const;
 
 export const DAILY_HOUSEHOLD_TASKS = [
-  'fedNatasha',
+  'fedPet',
   'cleanedLitter',
   'tookTrash',
   'madeBed',
@@ -101,7 +101,7 @@ export const HOUSEHOLD_TASK_LABELS: Record<
   DailyTaskKey | WeeklyTaskKey,
   string
 > = {
-  fedNatasha: 'Alimentou Natasha (água e ração)',
+  fedPet: 'Alimentou o pet (água e ração)',
   cleanedLitter: 'Limpou a caixa de areia do gato',
   tookTrash: 'Descartou o lixo',
   madeBed: 'Fez a cama',

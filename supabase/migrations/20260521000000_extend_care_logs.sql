@@ -39,11 +39,11 @@ ALTER TABLE public.care_logs
   -- Meals split into individual booleans: breakfast, lunch, snack, dinner
   -- JSONB chosen because it is always read/written as a unit
   ADD COLUMN household_tasks JSONB NOT NULL
-    DEFAULT '{"fedNatasha":false,"cleanedLitter":false,"tookTrash":false,"madeBed":false,"breakfast":false,"lunch":false,"snack":false,"dinner":false,"didLaundry":null,"cleaningLady":null,"groceryShopping":null}'::jsonb
+    DEFAULT '{"fedPet":false,"cleanedLitter":false,"tookTrash":false,"madeBed":false,"breakfast":false,"lunch":false,"snack":false,"dinner":false,"didLaundry":null,"cleaningLady":null,"groceryShopping":null}'::jsonb
     CONSTRAINT care_logs_household_tasks_structure
     CHECK (
       jsonb_typeof(household_tasks) = 'object'
-      AND household_tasks ? 'fedNatasha'
+      AND household_tasks ? 'fedPet'
       AND household_tasks ? 'cleanedLitter'
       AND household_tasks ? 'tookTrash'
       AND household_tasks ? 'madeBed'

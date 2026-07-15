@@ -56,7 +56,7 @@ describe('GET /api/circles', () => {
         {
           recipient_id: 'recipient-2',
           role: 'owner',
-          care_recipients: { display_name: 'Natasha', kind: 'pet' },
+          care_recipients: { display_name: 'Rex', kind: 'pet' },
         },
       ],
     });
@@ -76,7 +76,7 @@ describe('GET /api/circles', () => {
         recipientId: 'recipient-2',
         role: 'owner',
         clinicalProfile: null,
-        displayName: 'Natasha',
+        displayName: 'Rex',
         kind: 'pet',
       },
     ]);

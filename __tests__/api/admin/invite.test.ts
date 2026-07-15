@@ -74,7 +74,7 @@ describe('POST /api/admin/invite (M3: membership provisioning)', () => {
     jest.clearAllMocks();
     resetRateLimiter();
     for (const key of Object.keys(adminTables)) delete adminTables[key];
-    process.env.NEXT_PUBLIC_SITE_URL = 'https://sihha-five.vercel.app';
+    process.env.NEXT_PUBLIC_SITE_URL = 'https://sihha.example.com';
   });
 
   it('returns 401 when Authorization header is absent', async () => {
@@ -110,7 +110,7 @@ describe('POST /api/admin/invite (M3: membership provisioning)', () => {
     expect(mockInviteUser).toHaveBeenCalledWith(
       'nova@example.com',
       expect.objectContaining({
-        redirectTo: 'https://sihha-five.vercel.app/auth/reset-password',
+        redirectTo: 'https://sihha.example.com/auth/reset-password',
       }),
     );
     expect(membershipInsert).toHaveBeenCalledWith({

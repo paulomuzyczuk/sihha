@@ -204,7 +204,8 @@ export const pt = {
   'success.newLog': 'Novo registro',
 
   // Patient panel (M6)
-  'patient.menuGoals': 'Metas',
+  'patient.menuGoals': 'Metas Comportamentais',
+  'patient.menuLongTerm': 'Metas de Longo Prazo',
   'patient.menuQuestionnaires': 'Questionários',
   'patient.menuInvoices': 'Notas Fiscais',
   'patient.menuContract': 'Contrato',
@@ -215,7 +216,7 @@ export const pt = {
   // The clauses are generic examples, not any one recipient's terms.
   'contract.title': 'Contrato de convivência',
   'contract.intro':
-    'Este é o combinado que você assinou com a sua equipe de cuidado. Aqui, em um só lugar, ficam os seus compromissos do dia a dia e o que a sua equipe se compromete a fazer por você.',
+    'Este é o termo acordado com a sua equipe de cuidado. Aqui, em um só lugar, ficam os seus compromissos do dia a dia e o que a sua equipe se compromete a fazer por você.',
   'contract.recipientHeading': 'Seus compromissos',
   'contract.recipient1':
     'Manter a rotina combinada — horário de acordar, refeições e sono',
@@ -236,8 +237,22 @@ export const pt = {
     'Deslizes repetidos ou moderados: pausa temporária da mesada e do orçamento livre',
   'contract.breach3':
     'Faltas graves: medidas combinadas previamente com a equipe clínica',
+  'contract.reward':
+    'A cada mês, ao cumprir as metas combinadas com a sua equipe, você recebe a mesada acordada para apoiar esse caminho. Essas metas são definidas a partir dos compromissos deste acordo de convivência.',
+  'contract.reviewNote':
+    'Estes termos serão revistos a cada 6 meses e poderão ser flexibilizados conforme a avaliação da equipe de cuidado.',
   'contract.footer':
     'Combinado e assinado junto com a sua equipe de cuidado e testemunhas.',
+
+  // Long-term goals (M6): the recipient's own tab. Generic example goals,
+  // localised; a deployment replaces them with the recipient's own.
+  'longterm.title': 'Metas de Longo Prazo',
+  'longterm.intro':
+    'O objetivo de todo este sistema é apoiar você a reconquistar a sua independência e alcançar as suas metas de longo prazo, definidas em conjunto com a equipe de cuidado.',
+  'longterm.heading': 'Suas metas',
+  'longterm.goal1': 'Retomar os estudos ou uma qualificação',
+  'longterm.goal2': 'Buscar uma ocupação ou trabalho',
+  'longterm.goal3': 'Ampliar a autonomia no dia a dia',
 
   // Goal program (M6)
   'goal.overline': 'Meta do mês',
@@ -660,7 +675,8 @@ export const en: Record<TranslationKey, string> = {
   'success.saved': 'Logged. Thanks for keeping us in the loop.',
   'success.newLog': 'New log',
 
-  'patient.menuGoals': 'Goals',
+  'patient.menuGoals': 'Behavioural goals',
+  'patient.menuLongTerm': 'Long-term goals',
   'patient.menuQuestionnaires': 'Questionnaires',
   'patient.menuInvoices': 'Receipts',
   'patient.menuContract': 'Agreement',
@@ -669,7 +685,7 @@ export const en: Record<TranslationKey, string> = {
 
   'contract.title': 'Care agreement',
   'contract.intro':
-    'This is the agreement you signed with your care team. In one place, it holds your day-to-day commitments and what your team commits to doing for you.',
+    'This is what you agreed with your care team. In one place, it holds your day-to-day commitments and what your team commits to doing for you.',
   'contract.recipientHeading': 'Your commitments',
   'contract.recipient1': 'Keep the agreed routine — wake time, meals and sleep',
   'contract.recipient2':
@@ -691,8 +707,20 @@ export const en: Record<TranslationKey, string> = {
     'Repeated or moderate slips: a temporary pause of the allowance and discretionary budget',
   'contract.breach3':
     'Serious breaches: measures agreed in advance with the clinical team',
+  'contract.reward':
+    'Each month, by meeting the goals agreed with your team, you receive the agreed allowance to support that path. These goals are set from the commitments in this care agreement.',
+  'contract.reviewNote':
+    'These terms are reviewed every 6 months and may be eased as the care team sees fit.',
   'contract.footer':
     'Agreed and signed together with your care team and witnesses.',
+
+  'longterm.title': 'Long-term goals',
+  'longterm.intro':
+    'The purpose of this whole system is to support you in regaining your independence and reaching your long-term goals, defined together with your care team.',
+  'longterm.heading': 'Your goals',
+  'longterm.goal1': 'Return to studies or a qualification',
+  'longterm.goal2': 'Look for an occupation or work',
+  'longterm.goal3': 'Grow your day-to-day autonomy',
 
   'goal.overline': "This month's goal",
   'goal.ofTotal': 'of {total} possible this month',

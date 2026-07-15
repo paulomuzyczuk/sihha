@@ -36,7 +36,7 @@ export interface SleepData {
 
 export interface HouseholdTasks {
   // Daily — always required
-  fedNatasha: boolean;
+  fedPet: boolean;
   cleanedLitter: boolean;
   tookTrash: boolean;
   madeBed: boolean;

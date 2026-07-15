@@ -25,7 +25,7 @@ function makeLegacyRow(
     sleep_data: { start: '22:00', end: '07:00', hours: 9 },
     exercise: { type: 'gym_session', duration_minutes: 90 },
     household_tasks: {
-      fedNatasha: true,
+      fedPet: true,
       cleanedLitter: true,
       tookTrash: false,
       madeBed: true,
@@ -49,11 +49,11 @@ function makeLegacyRow(
 describe('buildEntryValues (legacy columns → metric-keyed values)', () => {
   it('maps camelCase task keys to snake_case metric keys, preserving nulls', () => {
     const values = buildEntryValues(makeLegacyRow());
-    expect(values.fed_natasha).toBe(true);
+    expect(values.fed_pet).toBe(true);
     expect(values.took_trash).toBe(false);
     expect(values.did_laundry).toBeNull(); // not due — must stay null
     expect(values.cleaning_lady).toBe(true);
-    expect(values).not.toHaveProperty('fedNatasha');
+    expect(values).not.toHaveProperty('fedPet');
   });
 
   it('flattens exercise and appointment into scalar metrics', () => {

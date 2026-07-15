@@ -58,7 +58,7 @@ const PROFILE_LABELS: Record<string, string> = {
 // Legacy camelCase task keys → metric keys (^[a-z][a-z0-9_]*$). M2's backfill
 // uses this same mapping when reshaping care_logs rows into entry values.
 export const LEGACY_TASK_TO_METRIC_KEY: Record<string, string> = {
-  fedNatasha: 'fed_natasha',
+  fedPet: 'fed_pet',
   cleanedLitter: 'cleaned_litter',
   tookTrash: 'took_trash',
   madeBed: 'made_bed',
