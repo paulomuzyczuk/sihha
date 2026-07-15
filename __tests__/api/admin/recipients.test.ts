@@ -12,10 +12,12 @@ jest.mock('@supabase/supabase-js', () => ({
 }));
 
 const adminTables: Record<string, ReturnType<typeof chain>> = {};
+const mockGetUserById = jest.fn();
 
 jest.mock('../../../services/db', () => ({
   getAdminDbClient: () => ({
     from: (table: string) => adminTables[table] ?? chain({ data: [] }),
+    auth: { admin: { getUserById: mockGetUserById } },
   }),
 }));
 
@@ -54,11 +56,21 @@ function mockNonAdmin() {
   });
 }
 
+const OWNER_UUID = '7b0a4d6e-3f2c-4d43-9a58-1c9f6f0e2a11';
+
 const validBody = {
   template_id: 'pet-care',
   display_name: 'Bolinha',
   timezone: 'America/Manaus',
+  owner_user_id: OWNER_UUID,
 };
+
+function mockOwnerExists() {
+  mockGetUserById.mockResolvedValue({
+    data: { user: { id: OWNER_UUID, email: 'brother@example.com' } },
+    error: null,
+  });
+}
 
 describe('GET /api/admin/recipients (template list)', () => {
   beforeEach(() => {
@@ -102,6 +114,7 @@ describe('POST /api/admin/recipients (create from template)', () => {
     adminTables['care_recipients'] = chain({
       data: { id: 'new-recipient', display_name: 'Bolinha' },
     });
+    mockOwnerExists();
   });
 
   it('returns 401 without a token', async () => {
@@ -129,6 +142,28 @@ describe('POST /api/admin/recipients (create from template)', () => {
     ).toBe(400);
   });
 
+  it('returns 400 without an assigned owner or with a malformed owner id', async () => {
+    mockAdmin();
+    const { owner_user_id: _ignored, ...withoutOwner } = validBody;
+    expect((await POST(makeRequest('POST', withoutOwner))).status).toBe(400);
+    expect(
+      (
+        await POST(
+          makeRequest('POST', { ...validBody, owner_user_id: 'not-a-uuid' }),
+        )
+      ).status,
+    ).toBe(400);
+  });
+
+  it('returns 400 when the assigned owner is not an existing account', async () => {
+    mockAdmin();
+    mockGetUserById.mockResolvedValue({
+      data: { user: null },
+      error: { message: 'not found' },
+    });
+    expect((await POST(makeRequest('POST', validBody))).status).toBe(400);
+  });
+
   it('creates the recipient from the template and reports it', async () => {
     mockAdmin();
     const res = await POST(makeRequest('POST', validBody));
@@ -151,7 +186,7 @@ describe('POST /api/admin/recipients (create from template)', () => {
     );
   });
 
-  it('inserts the template metric rows and the admin as owner', async () => {
+  it('inserts the template metric rows and the assigned user as owner', async () => {
     mockAdmin();
     adminTables['metric_definitions'] = chain({ data: [] });
     adminTables['alert_configs'] = chain({ data: [] });
@@ -181,7 +216,7 @@ describe('POST /api/admin/recipients (create from template)', () => {
     expect(adminTables['care_team_members'].insert).toHaveBeenCalledWith(
       expect.objectContaining({
         recipient_id: 'new-recipient',
-        user_id: 'admin-uuid',
+        user_id: OWNER_UUID,
         role: 'owner',
       }),
     );

@@ -1,4 +1,4 @@
-// M2 backfill (docs/architecture.md):
+// M2 backfill (docs/design/2026-07-04-care-recipients-and-templates.md §5):
 // transforms legacy care_logs rows into care_log_entries and verifies parity
 // by running the flagship aggregation code (scripts/legacyAggregates.ts —
 // the production dashboard arithmetic at M2 time, frozen there when M4 made

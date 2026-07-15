@@ -14,6 +14,9 @@ const InviteSchema = z.object({
   full_name: z.string().min(1).max(200),
   role: z.enum(['caregiver', 'clinician', 'recipient']),
   member_label: z.string().min(1).max(100).optional(),
+  clinical_profile: z
+    .enum(['therapist', 'psychologist', 'psychiatrist'])
+    .optional(),
   recipient_id: z.string().uuid().optional(),
 });
 
@@ -38,7 +41,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       { status: 400 },
     );
   }
-  const { email, full_name, role, member_label } = parsed.data;
+  const { email, full_name, role, member_label, clinical_profile } =
+    parsed.data;
 
   const adminDb = getAdminDbClient();
 
@@ -91,6 +95,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       user_id: invitedUserId,
       role,
       member_label: member_label ?? null,
+      clinical_profile: clinical_profile ?? null,
       receives_alerts: false,
     });
 

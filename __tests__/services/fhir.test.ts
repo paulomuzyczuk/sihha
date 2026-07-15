@@ -21,6 +21,8 @@ function def(partial: Partial<MetricDefinitionRow>): MetricDefinitionRow {
     config: {},
     cadence: 'daily',
     cadence_day: null,
+    cadence_days: null,
+    cadence_start: null,
     filled_by: 'caregiver',
     required: false,
     sort_order: 0,
@@ -86,7 +88,7 @@ describe('toPatient', () => {
   it('maps a human recipient without the animal extension', () => {
     const patient = toPatient({
       id: RECIPIENT_ID,
-      display_name: 'Omar',
+      display_name: 'Alex Doe',
       kind: 'human',
       timezone: 'America/Manaus',
       log_cadence: 'one_per_day',
@@ -99,7 +101,7 @@ describe('toPatient', () => {
       resourceType: 'Patient',
       id: RECIPIENT_ID,
       active: true,
-      name: [{ text: 'Omar' }],
+      name: [{ text: 'Alex Doe' }],
     });
   });
 
@@ -280,7 +282,7 @@ describe('bundle and outcome helpers', () => {
   it('builds a searchset with typed fullUrls', () => {
     const patient = toPatient({
       id: RECIPIENT_ID,
-      display_name: 'Omar',
+      display_name: 'Alex Doe',
       kind: 'human',
       timezone: 'UTC',
       log_cadence: 'one_per_day',

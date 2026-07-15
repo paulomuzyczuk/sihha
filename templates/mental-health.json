@@ -92,6 +92,24 @@
       "value_type": "boolean",
       "cadence": "weekly",
       "cadence_day": 5
+    },
+    {
+      "key": "session_feedback_text",
+      "label": "Por favor, relate brevemente como foi a consulta",
+      "value_type": "text",
+      "section": "Retorno da sessão",
+      "section_note": "O relato é opcional, mas é indicado que sejam oferecidas informações que sejam produtivas para a equipe de cuidados e que não violem a privacidade do paciente.",
+      "filled_by": "clinician",
+      "clinician_profile": "psychologist"
+    },
+    {
+      "key": "appointment_feedback_text",
+      "label": "Por favor, relate brevemente como foi a consulta",
+      "value_type": "text",
+      "section": "Retorno da consulta",
+      "section_note": "O relato é opcional, mas é indicado que sejam oferecidas informações que sejam produtivas para a equipe de cuidados e que não violem a privacidade do paciente.",
+      "filled_by": "clinician",
+      "clinician_profile": "psychiatrist"
     }
   ]
 }

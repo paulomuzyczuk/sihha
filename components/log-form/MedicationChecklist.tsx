@@ -3,12 +3,59 @@
 import React from 'react';
 import { useI18n } from '../../lib/i18n/I18nProvider';
 import { MedicationChecklistItem, MedicationOption } from '../../lib/types';
+import { Icon, Pill, PillGroup } from '../ui';
 
 interface MedicationChecklistProps {
   medications: MedicationOption[];
   checklist: MedicationChecklistItem[];
   onChange: (checklist: MedicationChecklistItem[]) => void;
   disabled: boolean;
+}
+
+// One tri-state per medication: each starts unanswered and takes an
+// explicit Sim/Não, like every other yes/no in the check-in.
+
+function TriState({
+  label,
+  taken,
+  onSelect,
+  disabled,
+}: {
+  label: string;
+  taken: boolean | null;
+  onSelect: (taken: boolean) => void;
+  disabled: boolean;
+}) {
+  const { t } = useI18n();
+  return (
+    <div
+      className="row"
+      style={{
+        justifyContent: 'space-between',
+        gap: 'var(--space-3)',
+        flexWrap: 'wrap',
+      }}
+    >
+      <span className="t-sm">{label}</span>
+      <PillGroup role="group" aria-label={label}>
+        <Pill
+          active={taken === true}
+          onClick={() => onSelect(true)}
+          disabled={disabled}
+        >
+          <Icon name="check" size={16} />
+          {t('logForm.yes')}
+        </Pill>
+        <Pill
+          active={taken === false}
+          onClick={() => onSelect(false)}
+          disabled={disabled}
+        >
+          {t('logForm.no')}
+        </Pill>
+      </PillGroup>
+    </div>
+  );
 }
 
 export default function MedicationChecklist({
@@ -18,62 +65,45 @@ export default function MedicationChecklist({
   disabled,
 }: MedicationChecklistProps) {
   const { t } = useI18n();
+
+  const setTaken = (index: number, taken: boolean) =>
+    onChange(
+      checklist.map((item, i) => (i === index ? { ...item, taken } : item)),
+    );
+
   if (medications.length === 0) {
-    const taken = checklist[0]?.taken ?? false;
     return (
       <div className="form-group">
-        <label className="form-label">{t('meds.title')}</label>
-        <div className="switch-container">
-          <span className="form-label" style={{ margin: 0 }}>
-            {t('meds.asPrescribed')}
-          </span>
-          <label className="switch">
-            <input
-              type="checkbox"
-              checked={taken}
-              onChange={() =>
-                onChange([
-                  { name: 'default', prescribedDosage: 0, taken: !taken },
-                ])
-              }
-              disabled={disabled}
-            />
-            <span className="slider"></span>
-          </label>
-        </div>
+        <span className="field-label">{t('meds.title')}</span>
+        <TriState
+          label={t('meds.asPrescribed')}
+          taken={checklist[0]?.taken ?? null}
+          onSelect={(taken) =>
+            onChange([{ name: 'default', prescribedDosage: 0, taken }])
+          }
+          disabled={disabled}
+        />
       </div>
     );
   }
 
-  const toggle = (index: number) => {
-    const updated = checklist.map((item, i) =>
-      i === index ? { ...item, taken: !item.taken } : item,
-    );
-    onChange(updated);
-  };
-
   return (
     <div className="form-group">
-      <label className="form-label">{t('meds.title')}</label>
-      {checklist.map((item, index) => (
-        <div key={item.name} className="switch-container">
-          <span className="form-label" style={{ margin: 0 }}>
-            {t('meds.perDay', {
+      <span className="field-label">{t('meds.title')}</span>
+      <div className="stack" style={{ gap: 'var(--space-3)' }}>
+        {checklist.map((item, index) => (
+          <TriState
+            key={item.name}
+            label={t('meds.perDay', {
               name: item.name,
               dosage: item.prescribedDosage,
             })}
-          </span>
-          <label className="switch">
-            <input
-              type="checkbox"
-              checked={item.taken}
-              onChange={() => toggle(index)}
-              disabled={disabled}
-            />
-            <span className="slider"></span>
-          </label>
-        </div>
-      ))}
+            taken={item.taken}
+            onSelect={(taken) => setTaken(index, taken)}
+            disabled={disabled}
+          />
+        ))}
+      </div>
     </div>
   );
 }

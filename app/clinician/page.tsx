@@ -3,9 +3,11 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../components/supabaseClient';
-import ClinicianDashboard from '../../components/ClinicianDashboard';
+import ClinicianPanel from '../../components/ClinicianPanel';
 import CircleSwitcher from '../../components/CircleSwitcher';
 import LanguageToggle from '../../components/LanguageToggle';
+import AppNavbar from '../../components/AppNavbar';
+import { Button } from '../../components/ui';
 import { API_ROUTES, CARE_ROLES, ROLES } from '../../lib/constants';
 import { useI18n } from '../../lib/i18n/I18nProvider';
 import {
@@ -95,7 +97,7 @@ export default function ClinicianPage() {
           className="spinner"
           style={{ width: '32px', height: '32px', borderWidth: '3px' }}
         ></div>
-        <p style={{ color: 'hsl(var(--text-secondary))', fontSize: '0.9rem' }}>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
           {t('common.checkingSession')}
         </p>
       </div>
@@ -106,32 +108,20 @@ export default function ClinicianPage() {
     <div
       style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}
     >
-      <header className="navbar">
-        <div className="navbar-brand">{t('common.brand')}</div>
-        <div className="navbar-user">
-          {selectedId && (
-            <CircleSwitcher
-              circles={circles}
-              selectedId={selectedId}
-              onChange={handleSwitchCircle}
-            />
-          )}
-          <span className="user-badge clinician">{t('clinician.badge')}</span>
-          <LanguageToggle />
-          <button
-            onClick={handleSignOut}
-            className="btn btn-secondary"
-            style={{
-              width: 'auto',
-              padding: '0.45rem 1rem',
-              borderRadius: '8px',
-              fontSize: '0.85rem',
-            }}
-          >
-            {t('common.signOut')}
-          </button>
-        </div>
-      </header>
+      <AppNavbar>
+        {selectedId && (
+          <CircleSwitcher
+            circles={circles}
+            selectedId={selectedId}
+            onChange={handleSwitchCircle}
+          />
+        )}
+        <span className="user-badge clinician">{t('clinician.badge')}</span>
+        <LanguageToggle />
+        <Button variant="ghost" size="sm" onClick={handleSignOut}>
+          {t('common.signOut')}
+        </Button>
+      </AppNavbar>
 
       <main
         style={{
@@ -139,14 +129,18 @@ export default function ClinicianPage() {
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          padding: '2rem 1.5rem',
+          padding: 'var(--space-8) var(--space-6)',
         }}
       >
         {selectedId && (
-          <ClinicianDashboard
+          <ClinicianPanel
             key={selectedId}
             accessToken={accessToken}
             recipientId={selectedId}
+            clinicalProfile={
+              circles.find((c) => c.recipientId === selectedId)
+                ?.clinicalProfile ?? null
+            }
           />
         )}
       </main>

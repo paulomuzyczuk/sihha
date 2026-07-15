@@ -2,107 +2,28 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { API_ROUTES } from '../lib/constants';
-import { withRecipient } from '../lib/circles';
+import { withRecipient, withViewAs } from '../lib/circles';
 import { useI18n } from '../lib/i18n/I18nProvider';
-import type { I18n } from '../lib/i18n/I18nProvider';
 import { DEFAULT_LOOKBACK, MAX_LOOKBACK } from '../services/aggregates';
-import type {
-  AggregationPeriod,
-  MetricSeries,
-  MetricSeriesPoint,
-} from '../services/aggregates';
+import type { AggregationPeriod, MetricSeries } from '../services/aggregates';
+import type { PsychometricResult } from '../services/clinicianCharts';
+import { Card } from './ui';
+import EngagementCard from './clinician-charts/EngagementCard';
+import PsychometricTrendCard from './clinician-charts/PsychometricTrendCard';
+import ScalesTrendCard from './clinician-charts/ScalesTrendCard';
 
 const PERIODS: AggregationPeriod[] = ['daily', 'weekly', 'monthly'];
 
-function formatBucketLabel(
-  key: string,
-  period: AggregationPeriod,
-  t: I18n['t'],
-): string {
-  if (period === 'daily') {
-    const [year, month, day] = key.split('-');
-    return `${day}/${month}/${year}`;
-  }
-  if (period === 'weekly') {
-    const [year, week] = key.split('-W');
-    return t('clinician.weekLabel', { week, year });
-  }
-  const [year, month] = key.split('-');
-  return `${month}/${year}`;
-}
-
-/** Column header: the label plus the scale range or unit when configured. */
-function seriesHeader(series: MetricSeries): string {
-  const { min, max, unit } = series.config;
-  if (series.value_type === 'scale' && min !== undefined && max !== undefined) {
-    return `${series.label} (${min}–${max})`;
-  }
-  if (series.value_type === 'number' && unit) {
-    return `${series.label} (${unit})`;
-  }
-  if (series.value_type === 'time_range') {
-    return `${series.label} (h)`;
-  }
-  return series.label;
-}
-
-/** Display label for a stored enum value, via the definition's options. */
-function enumLabel(series: MetricSeries, value: string): string {
-  for (const option of series.config.options ?? []) {
-    if (typeof option === 'object' && option.value === value) {
-      return option.label;
-    }
-  }
-  return value;
-}
-
-// One formatting rule per value_type — the client-side half of the generic
-// dispatch (the arithmetic half lives in services/aggregates.ts).
-function formatPoint(series: MetricSeries, point: MetricSeriesPoint): string {
-  if (point.count === 0) return '—';
-  switch (series.value_type) {
-    case 'scale':
-    case 'number':
-    case 'time_range':
-      return String(point.avg);
-    case 'boolean':
-    case 'medication_checklist':
-      return `${point.pct}%`;
-    case 'duration_minutes':
-      return `${point.count}× (${point.sum} min)`;
-    case 'enum':
-      return Object.entries(point.distribution ?? {})
-        .sort(([, a], [, b]) => b - a)
-        .map(([value, n]) =>
-          n === 1
-            ? enumLabel(series, value)
-            : `${enumLabel(series, value)} ×${n}`,
-        )
-        .join(', ');
-  }
-}
-
-const cellStyle: React.CSSProperties = {
-  padding: '0.6rem 0.75rem',
-  borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-  fontSize: '0.85rem',
-  textAlign: 'center',
-  whiteSpace: 'nowrap',
-};
-
-const headerCellStyle: React.CSSProperties = {
-  ...cellStyle,
-  color: 'hsl(var(--text-secondary))',
-  fontWeight: 600,
-  fontSize: '0.75rem',
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-};
+// The charts always look at the monthly development of the last year; the
+// finer daily/weekly resolutions stay available through the CSV export.
+const CHART_LOOKBACK_MONTHS = 12;
 
 interface ClinicianDashboardProps {
   accessToken: string;
   // Absent → the API resolves the caller's single membership (admin views)
   recipientId?: string;
+  // Platform-admin role preview — forwarded as ?view_as on every API call
+  viewAs?: string | null;
 }
 
 interface AggregatesResponse {
@@ -111,23 +32,68 @@ interface AggregatesResponse {
 }
 
 /**
- * Read-only aggregate view over the recipient's logs, shared by the CLINICIAN
- * page (/clinician) and the admin "Ver como Equipe Clínica" view. Fully
- * generic since M4: one column per active metric definition, each rendered by
- * its value_type — no flagship metric names in the code.
+ * The clinical team's "Indicadores" view, shared by /clinician and the admin
+ * "Ver como Equipe Clínica" preview. A chart dashboard since M9: monthly
+ * scale development, the yearly psychometric evaluation, and an engagement
+ * strip — with the CSV export keeping the raw table available offline.
  */
 export default function ClinicianDashboard({
   accessToken,
   recipientId,
+  viewAs,
 }: ClinicianDashboardProps) {
   const { t } = useI18n();
-  const [period, setPeriod] = useState<AggregationPeriod>('daily');
-  const [lookback, setLookback] = useState<number>(DEFAULT_LOOKBACK.daily);
   const [buckets, setBuckets] = useState<AggregatesResponse['buckets']>([]);
   const [series, setSeries] = useState<MetricSeries[]>([]);
+  const [psychometrics, setPsychometrics] = useState<PsychometricResult[]>([]);
   const [loading, setLoading] = useState(true);
-  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState('');
+
+  // Export-only controls: which slice the downloaded CSV covers
+  const [period, setPeriod] = useState<AggregationPeriod>('daily');
+  const [lookback, setLookback] = useState<number>(DEFAULT_LOOKBACK.daily);
+  const [exporting, setExporting] = useState(false);
+
+  const authedFetch = useCallback(
+    (base: string) =>
+      fetch(
+        withViewAs(
+          recipientId ? withRecipient(base, recipientId) : base,
+          viewAs,
+        ),
+        { headers: { Authorization: `Bearer ${accessToken}` } },
+      ),
+    [accessToken, recipientId, viewAs],
+  );
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const [aggRes, psychRes] = await Promise.all([
+          authedFetch(
+            `${API_ROUTES.LOG_AGGREGATES}?period=monthly&lookback=${CHART_LOOKBACK_MONTHS}`,
+          ),
+          authedFetch(API_ROUTES.PSYCHOMETRICS),
+        ]);
+        if (!aggRes.ok || !psychRes.ok) {
+          setError(t('clinician.loadError'));
+          return;
+        }
+        const agg: AggregatesResponse = await aggRes.json();
+        const psych = await psychRes.json();
+        setBuckets(agg.buckets ?? []);
+        setSeries(agg.series ?? []);
+        setPsychometrics(psych.results ?? []);
+      } catch {
+        setError(t('clinician.connError'));
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [authedFetch, t]);
 
   const switchPeriod = (next: AggregationPeriod) => {
     setPeriod(next);
@@ -140,51 +106,14 @@ export default function ClinicianDashboard({
     setLookback(Math.min(Math.max(value, 1), MAX_LOOKBACK[period]));
   };
 
-  const loadAggregates = useCallback(
-    async (selected: AggregationPeriod, periods: number) => {
-      setLoading(true);
-      setError('');
-      try {
-        const base = `${API_ROUTES.LOG_AGGREGATES}?period=${selected}&lookback=${periods}`;
-        const res = await fetch(
-          recipientId ? withRecipient(base, recipientId) : base,
-          { headers: { Authorization: `Bearer ${accessToken}` } },
-        );
-        if (!res.ok) {
-          setError(t('clinician.loadError'));
-          setBuckets([]);
-          setSeries([]);
-          return;
-        }
-        const data: AggregatesResponse = await res.json();
-        setBuckets(data.buckets ?? []);
-        setSeries(data.series ?? []);
-      } catch {
-        setError(t('clinician.connError'));
-        setBuckets([]);
-        setSeries([]);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [accessToken, recipientId, t],
-  );
-
-  useEffect(() => {
-    loadAggregates(period, lookback);
-  }, [period, lookback, loadAggregates]);
-
-  // Same query the table shows, as a downloaded CSV file. The blob dance is
-  // needed because the endpoint requires the Authorization header — a plain
-  // <a href> cannot carry it.
+  // The blob dance is needed because the endpoint requires the Authorization
+  // header — a plain <a href> cannot carry it.
   const handleExportCsv = async () => {
     setExporting(true);
     setError('');
     try {
-      const base = `${API_ROUTES.LOG_AGGREGATES}?period=${period}&lookback=${lookback}&format=csv`;
-      const res = await fetch(
-        recipientId ? withRecipient(base, recipientId) : base,
-        { headers: { Authorization: `Bearer ${accessToken}` } },
+      const res = await authedFetch(
+        `${API_ROUTES.LOG_AGGREGATES}?period=${period}&lookback=${lookback}&format=csv`,
       );
       if (!res.ok) {
         setError(t('clinician.exportError'));
@@ -205,43 +134,52 @@ export default function ClinicianDashboard({
     }
   };
 
-  // Newest period first — clinicians scan from the current state backwards.
-  // Every series carries one point per bucket at the same index, so rows keep
-  // the original index to read each series positionally.
-  const rows = buckets.map((bucket, index) => ({ bucket, index })).reverse();
+  if (loading) {
+    return (
+      <div
+        className="card card-wide flex-center"
+        style={{ flexDirection: 'column', gap: '1rem', padding: '2rem' }}
+      >
+        <div
+          className="spinner"
+          style={{ width: '28px', height: '28px', borderWidth: '3px' }}
+        ></div>
+        <p className="t-sm t-muted">{t('clinician.loading')}</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="card" style={{ maxWidth: '900px', width: '100%' }}>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '1rem',
-          marginBottom: '1.5rem',
-        }}
-      >
-        <h2 style={{ fontSize: '1.25rem' }}>{t('clinician.title')}</h2>
+    <div className="stack" style={{ gap: 'var(--space-6)', width: '100%' }}>
+      {error && (
+        <div className="alert alert-error">
+          <span>{error}</span>
+        </div>
+      )}
+
+      <ScalesTrendCard series={series} buckets={buckets.map((b) => b.key)} />
+      <PsychometricTrendCard results={psychometrics} />
+      <EngagementCard buckets={buckets} series={series} />
+
+      <Card wide>
+        <div className="t-overline" style={{ marginBottom: 'var(--space-4)' }}>
+          {t('clinician.exportTitle')}
+        </div>
         <div
-          style={{
-            display: 'flex',
-            gap: '0.5rem',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-          }}
+          className="row"
+          style={{ gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}
         >
           {PERIODS.map((p) => (
             <button
               key={p}
               type="button"
               onClick={() => switchPeriod(p)}
-              className={period === p ? 'btn' : 'btn btn-secondary'}
-              style={{
-                width: 'auto',
-                padding: '0.45rem 1rem',
-                fontSize: '0.85rem',
-              }}
+              className={
+                period === p
+                  ? 'btn btn-primary btn-sm'
+                  : 'btn btn-outline btn-sm'
+              }
+              style={{ width: 'auto' }}
             >
               {t(`clinician.period.${p}`)}
             </button>
@@ -252,7 +190,7 @@ export default function ClinicianDashboard({
               alignItems: 'center',
               gap: '0.5rem',
               fontSize: '0.85rem',
-              color: 'hsl(var(--text-secondary))',
+              color: 'var(--text-muted)',
             }}
           >
             {t('clinician.last')}
@@ -271,84 +209,14 @@ export default function ClinicianDashboard({
           <button
             type="button"
             onClick={handleExportCsv}
-            className="btn btn-secondary"
-            disabled={exporting || loading}
-            style={{
-              width: 'auto',
-              padding: '0.45rem 1rem',
-              fontSize: '0.85rem',
-            }}
+            className="btn btn-outline btn-sm"
+            disabled={exporting}
+            style={{ width: 'auto' }}
           >
             {exporting ? t('clinician.exporting') : t('clinician.exportCsv')}
           </button>
         </div>
-      </div>
-
-      {error && (
-        <div className="alert alert-error">
-          <span>{error}</span>
-        </div>
-      )}
-
-      {loading ? (
-        <div
-          className="flex-center"
-          style={{ padding: '2rem', flexDirection: 'column', gap: '1rem' }}
-        >
-          <div
-            className="spinner"
-            style={{ width: '28px', height: '28px', borderWidth: '3px' }}
-          ></div>
-          <p
-            style={{ color: 'hsl(var(--text-secondary))', fontSize: '0.9rem' }}
-          >
-            {t('clinician.loading')}
-          </p>
-        </div>
-      ) : rows.length === 0 && !error ? (
-        <p
-          style={{
-            color: 'hsl(var(--text-secondary))',
-            textAlign: 'center',
-            padding: '2rem 0',
-          }}
-        >
-          {t('clinician.empty')}
-        </p>
-      ) : (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr>
-                <th style={{ ...headerCellStyle, textAlign: 'left' }}>
-                  {t('clinician.periodColumn')}
-                </th>
-                <th style={headerCellStyle}>{t('clinician.logsColumn')}</th>
-                {series.map((s) => (
-                  <th key={s.key} style={headerCellStyle}>
-                    {seriesHeader(s)}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map(({ bucket, index }) => (
-                <tr key={bucket.key}>
-                  <td style={{ ...cellStyle, textAlign: 'left' }}>
-                    {formatBucketLabel(bucket.key, period, t)}
-                  </td>
-                  <td style={cellStyle}>{bucket.logCount}</td>
-                  {series.map((s) => (
-                    <td key={s.key} style={cellStyle}>
-                      {formatPoint(s, s.points[index])}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      </Card>
     </div>
   );
 }

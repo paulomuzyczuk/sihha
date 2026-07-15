@@ -2,18 +2,23 @@
 
 import React, { useState, useRef } from 'react';
 import { API_ROUTES } from '../lib/constants';
-import { withRecipient } from '../lib/circles';
+import { withRecipient, withViewAs } from '../lib/circles';
+import { parseDecimal } from '../lib/numberFormat';
 import { useI18n } from '../lib/i18n/I18nProvider';
 import { InvoicePayload } from '../lib/types';
 import { supabase } from './supabaseClient';
+import { Alert, Button, Dropzone, Field, Icon, Input } from './ui';
 
 interface InvoiceUploadFormProps {
   // Absent → the API resolves the caller's single membership (admin views)
   recipientId?: string;
+  // Platform-admin role preview — forwarded as ?view_as on every API call
+  viewAs?: string | null;
 }
 
 export default function InvoiceUploadForm({
   recipientId,
+  viewAs,
 }: InvoiceUploadFormProps) {
   const { t } = useI18n();
   const [amount, setAmount] = useState<string>('');
@@ -29,7 +34,7 @@ export default function InvoiceUploadForm({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
-  const maxBytes = 5 * 1024 * 1024; // 5MB
+  const maxBytes = 15 * 1024 * 1024; // 15MB
 
   const handleFile = (selectedFile: File) => {
     setStatus({ type: 'idle', message: '' });
@@ -99,7 +104,7 @@ export default function InvoiceUploadForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const numericAmount = parseFloat(amount);
+    const numericAmount = parseDecimal(amount);
     if (isNaN(numericAmount) || numericAmount <= 0) {
       setStatus({
         type: 'error',
@@ -165,14 +170,19 @@ export default function InvoiceUploadForm({
       const position = await getGeolocation();
       setGeoProgress(t('invoice.registering'));
 
-      // 4. Retrieve Public URL for uploaded storage asset
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from('invoices').getPublicUrl(storagePath);
+      // 4. Build the canonical object URL on our own Supabase host. The
+      //    'invoices' bucket is PRIVATE (financial documents), so there is no
+      //    public URL — reads go through the signed-URL route
+      //    (GET /api/invoices/file). This is also what the API's SSRF check
+      //    expects. Mirrors the prescriptions/evaluations flow.
+      const fileUrl = new URL(
+        `/storage/v1/object/invoices/${uploadData.path}`,
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      ).toString();
 
       const payload: InvoicePayload = {
         amount: numericAmount,
-        fileUrl: publicUrl,
+        fileUrl,
         location: {
           lat: position.coords.latitude,
           lng: position.coords.longitude,
@@ -182,9 +192,12 @@ export default function InvoiceUploadForm({
 
       // 5. Post payload to Backend API
       const res = await fetch(
-        recipientId
-          ? withRecipient(API_ROUTES.INVOICES, recipientId)
-          : API_ROUTES.INVOICES,
+        withViewAs(
+          recipientId
+            ? withRecipient(API_ROUTES.INVOICES, recipientId)
+            : API_ROUTES.INVOICES,
+          viewAs,
+        ),
         {
           method: 'POST',
           headers: {
@@ -198,6 +211,7 @@ export default function InvoiceUploadForm({
       const resData = await res.json();
 
       if (!res.ok) {
+        setGeoProgress('');
         if (res.status === 429) {
           setStatus({ type: 'error', message: t('errors.rateLimit') });
         } else if (res.status === 403) {
@@ -207,6 +221,8 @@ export default function InvoiceUploadForm({
           });
         } else if (res.status === 401) {
           setStatus({ type: 'error', message: t('errors.unauthorized') });
+        } else if (res.status >= 500) {
+          setStatus({ type: 'error', message: t('errors.server') });
         } else {
           setStatus({
             type: 'error',
@@ -228,6 +244,7 @@ export default function InvoiceUploadForm({
         fileInputRef.current.value = '';
       }
     } catch (err: any) {
+      setGeoProgress('');
       let errorMsg = t('geo.unavailable');
       if (err.code === 1) {
         errorMsg = t('geo.denied');
@@ -245,44 +262,42 @@ export default function InvoiceUploadForm({
 
   return (
     <form className="card" onSubmit={handleSubmit}>
-      <h2>{t('invoice.title')}</h2>
+      <h3 style={{ marginBottom: 'var(--space-5)' }}>{t('invoice.title')}</h3>
 
       {status.type === 'error' && (
-        <div className="alert alert-error">
-          <span>{status.message}</span>
-        </div>
+        <Alert variant="danger">{status.message}</Alert>
       )}
 
       {status.type === 'success' && (
-        <div className="alert alert-success">
-          <span>{status.message}</span>
-        </div>
+        <Alert variant="success">{status.message}</Alert>
       )}
 
       {geoProgress && (
         <div className="geo-loader">
-          <div className="spinner"></div>
+          <Icon name="location" size={16} />
           <span>{geoProgress}</span>
         </div>
       )}
 
-      <div className="form-group">
-        <label className="form-label">{t('invoice.amountLabel')}</label>
-        <input
-          type="number"
-          step="0.01"
-          min="0.01"
-          placeholder="42.50"
+      <Field
+        label={t('invoice.amountLabel')}
+        htmlFor="invoice-amount"
+        className="form-group"
+      >
+        <Input
+          id="invoice-amount"
+          type="text"
+          inputMode="decimal"
+          placeholder={t('invoice.amountPlaceholder')}
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
-          className="form-input"
           disabled={status.type === 'loading'}
           required
         />
-      </div>
+      </Field>
 
-      <div className="form-group" style={{ marginBottom: '2rem' }}>
-        <label className="form-label">{t('invoice.docLabel')}</label>
+      <div className="form-group" style={{ marginBottom: 'var(--space-6)' }}>
+        <span className="field-label">{t('invoice.docLabel')}</span>
 
         <input
           type="file"
@@ -293,8 +308,17 @@ export default function InvoiceUploadForm({
           disabled={status.type === 'loading'}
         />
 
-        <div
-          className={`dropzone ${dragActive ? 'active' : ''}`}
+        <Dropzone
+          active={dragActive}
+          fileName={file?.name}
+          prompt={t('invoice.dropHere')}
+          hint={
+            file
+              ? t('invoice.clickToChange', {
+                  size: (file.size / (1024 * 1024)).toFixed(2),
+                })
+              : t('invoice.fileTypes')
+          }
           onDragEnter={handleDrag}
           onDragOver={handleDrag}
           onDragLeave={handleDrag}
@@ -302,42 +326,15 @@ export default function InvoiceUploadForm({
           onClick={() =>
             status.type !== 'loading' && fileInputRef.current?.click()
           }
-        >
-          <div className="dropzone-icon"></div>
-          {file ? (
-            <div>
-              <p className="dropzone-filename">{file.name}</p>
-              <p className="dropzone-text" style={{ marginTop: '0.25rem' }}>
-                {t('invoice.clickToChange', {
-                  size: (file.size / (1024 * 1024)).toFixed(2),
-                })}
-              </p>
-            </div>
-          ) : (
-            <div>
-              <p className="dropzone-text" style={{ fontWeight: '500' }}>
-                {t('invoice.dropHere')}
-              </p>
-              <p
-                className="dropzone-text"
-                style={{ fontSize: '0.75rem', marginTop: '0.25rem' }}
-              >
-                {t('invoice.fileTypes')}
-              </p>
-            </div>
-          )}
-        </div>
+        />
       </div>
 
-      <button
-        type="submit"
-        className="btn"
-        disabled={status.type === 'loading'}
-      >
+      <Button type="submit" block disabled={status.type === 'loading'}>
+        <Icon name="receipt" size={18} />
         {status.type === 'loading'
           ? t('invoice.submitting')
           : t('invoice.submit')}
-      </button>
+      </Button>
     </form>
   );
 }

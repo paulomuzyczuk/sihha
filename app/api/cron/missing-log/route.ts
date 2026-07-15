@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDbClient } from '../../../../services/db';
 import { getAlertRecipientEmails } from '../../../../services/careTeam';
 import { localDate } from '../../../../services/dynamicLog';
+import { displayDate } from '../../../../services/dateUtils';
 import { emailText, sendEmailAlert } from '../../../../services/email';
 import { logger } from '../../../../services/logger';
 
@@ -49,11 +50,14 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     const recipient = config.care_recipients;
     const today = localDate(recipient.timezone);
 
+    // The alert watches the therapist's daily log specifically — a
+    // self-report or clinician entry must not silence it
     const { count } = await adminDb
       .from('care_log_entries')
       .select('id', { count: 'exact', head: true })
       .eq('recipient_id', config.recipient_id)
-      .eq('log_date', today);
+      .eq('log_date', today)
+      .eq('author_role', 'caregiver');
 
     if ((count ?? 0) > 0) {
       logger.info('cron/missing-log: log found, skipping alert', {
@@ -72,7 +76,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
           email,
           emailText('email.missingLogSubject'),
           emailText('email.missingLogBody', {
-            date: today,
+            date: displayDate(today),
             name: recipient.display_name,
           }),
         )) || sent;

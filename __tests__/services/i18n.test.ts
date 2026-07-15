@@ -46,7 +46,7 @@ describe('translate', () => {
       'Invite sent to a@b.com.',
     );
     expect(translate('pt', 'notes.label', { count: 42 })).toBe(
-      'Observações (42/1000)',
+      'Recado para a equipe (42/1000)',
     );
   });
 

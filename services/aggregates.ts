@@ -76,6 +76,9 @@ export function bucketKey(
 
 export type MetricValueType = MetricDefinitionRow['value_type'];
 
+/** Series value types — free text is qualitative and never aggregated. */
+export type AggregatedValueType = Exclude<MetricValueType, 'text'>;
+
 export interface MetricSeriesConfig {
   min?: number;
   max?: number;
@@ -115,7 +118,11 @@ export interface MetricSeriesPoint {
   distribution: Record<string, number> | null;
 }
 
-export interface MetricSeries extends AggregateMetricDefinition {
+export interface MetricSeries extends Omit<
+  AggregateMetricDefinition,
+  'value_type'
+> {
+  value_type: AggregatedValueType;
   points: MetricSeriesPoint[];
 }
 
@@ -139,7 +146,9 @@ function isFiniteNumber(value: unknown): value is number {
 // Values arrive from JSONB, so every extractor type-checks before counting:
 // a malformed value is treated as absent rather than corrupting the series.
 function aggregatePoint(
-  def: AggregateMetricDefinition,
+  def: Omit<AggregateMetricDefinition, 'value_type'> & {
+    value_type: AggregatedValueType;
+  },
   group: CareLogEntryValuesRow[],
   bucket: string,
 ): MetricSeriesPoint {
@@ -265,6 +274,14 @@ export function aggregateMetricSeries(
   }));
 
   const series = [...definitions]
+    // Free-text metrics are qualitative — nothing meaningful to aggregate
+    .filter(
+      (
+        def,
+      ): def is AggregateMetricDefinition & {
+        value_type: AggregatedValueType;
+      } => def.value_type !== 'text',
+    )
     .sort((a, b) => a.sort_order - b.sort_order)
     .map((def) => ({
       ...def,

@@ -24,7 +24,7 @@ const CONFIG_ROW = {
   missing_log_hour: 21,
   care_recipients: {
     id: 'recipient-1',
-    display_name: 'Omar',
+    display_name: 'Alex Doe',
     timezone: 'America/Manaus',
     active: true,
   },
@@ -85,7 +85,7 @@ describe('GET /api/cron/missing-log (M3: config-driven)', () => {
     expect(mockSendEmail.mock.calls[0][1]).toBe(
       translate(DEFAULT_LOCALE, 'email.missingLogSubject'),
     );
-    expect(mockSendEmail.mock.calls[0][2]).toContain('Omar');
+    expect(mockSendEmail.mock.calls[0][2]).toContain('Alex Doe');
   });
 
   it('falls back to the admin e-mail when no member is flagged', async () => {

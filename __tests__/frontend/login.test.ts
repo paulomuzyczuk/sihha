@@ -35,11 +35,17 @@ describe('Frontend Login State and Logic Validation', () => {
 });
 
 describe('homeRouteForMemberships (post-login landing, M3)', () => {
-  it('routes platform admins to /admin regardless of memberships', () => {
-    expect(homeRouteForMemberships(true, [])).toBe('/admin');
+  it('routes platform admins with a membership to /dashboard (role-view switcher home)', () => {
     expect(homeRouteForMemberships(true, [CARE_ROLES.CAREGIVER])).toBe(
-      '/admin',
+      '/dashboard',
     );
+    expect(homeRouteForMemberships(true, [CARE_ROLES.OWNER])).toBe(
+      '/dashboard',
+    );
+  });
+
+  it('routes platform admins without memberships to /admin', () => {
+    expect(homeRouteForMemberships(true, [])).toBe('/admin');
   });
 
   it('routes clinicians to /clinician', () => {

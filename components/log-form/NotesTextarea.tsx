@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useI18n } from '../../lib/i18n/I18nProvider';
+import { Field, Textarea } from '../ui';
 
 interface NotesTextareaProps {
   value: string;
@@ -22,18 +23,20 @@ export default function NotesTextarea({
   };
 
   return (
-    <div className="form-group">
-      <label className="form-label">
-        {t('notes.label', { count: value.length })}
-      </label>
-      <textarea
+    <Field
+      label={t('notes.label', { count: value.length })}
+      htmlFor="log-notes"
+      hint={t('notes.hint')}
+      className="form-group"
+    >
+      <Textarea
+        id="log-notes"
         value={value}
         onChange={handleChange}
-        className="form-input"
         placeholder={t('notes.placeholder')}
-        style={{ minHeight: '120px', resize: 'vertical' }}
+        style={{ minHeight: '120px' }}
         disabled={disabled}
       />
-    </div>
+    </Field>
   );
 }

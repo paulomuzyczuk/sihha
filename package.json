@@ -11,12 +11,16 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "format:write": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "test:integration": "jest --config jest.integration.config.ts",
+    "budget": "node scripts/check-bundle-budget.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.38.0",
+    "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
     "next": "^15.5.19",
     "nodemailer": "^9.0.3",
     "pino": "^10.3.1",

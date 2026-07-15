@@ -1,12 +1,18 @@
 export const API_ROUTES = {
   LOGS: '/api/logs',
   INVOICES: '/api/invoices',
+  INVOICES_FILE: '/api/invoices/file',
+  PRESCRIPTIONS: '/api/prescriptions',
+  EVALUATIONS: '/api/evaluations',
   MEDICATIONS: '/api/medications',
   METRICS: '/api/metrics',
   LOG_AGGREGATES: '/api/logs/aggregates',
+  GOALS: '/api/goals',
+  PSYCHOMETRICS: '/api/psychometrics',
   CIRCLES: '/api/circles',
   ADMIN_INVITE: '/api/admin/invite',
   ADMIN_RECIPIENTS: '/api/admin/recipients',
+  ADMIN_USERS: '/api/admin/users',
 } as const;
 
 // Care-circle roles (care_team_members.role) — the M3 authorization model.
@@ -72,7 +78,7 @@ export const EXERCISE_TYPES = {
 export const EXERCISE_DURATIONS = [15, 30, 45, 60, 90] as const;
 
 export const DAILY_HOUSEHOLD_TASKS = [
-  'fedPet',
+  'fedNatasha',
   'cleanedLitter',
   'tookTrash',
   'madeBed',
@@ -95,7 +101,7 @@ export const HOUSEHOLD_TASK_LABELS: Record<
   DailyTaskKey | WeeklyTaskKey,
   string
 > = {
-  fedPet: 'Alimentou o pet (água e ração)',
+  fedNatasha: 'Alimentou Natasha (água e ração)',
   cleanedLitter: 'Limpou a caixa de areia do gato',
   tookTrash: 'Descartou o lixo',
   madeBed: 'Fez a cama',

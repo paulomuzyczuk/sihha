@@ -1,0 +1,21 @@
+{
+  "_comment": "Per-route First Load JS budgets in KB (gzip), enforced by scripts/check-bundle-budget.mjs in CI (pnpm budget). Numbers match `next build`'s reported First Load JS. Budgets are ~15 kB (~7%) above the 2026-07-15 baseline: headroom for normal iteration, tight enough to catch a real regression. Raising a budget must happen in the same PR as the growth so the increase is reviewed. Recalibrate downward as Vercel Speed Insights shows real-user headroom. Full rationale: software-craft vault handoff 2026-07-15-sihha-perf-gate-and-test-audit.md.",
+  "defaultKb": 220,
+  "routes": {
+    "/admin": 220,
+    "/dashboard": 220,
+    "/clinician": 215,
+    "/login": 188,
+    "/success": 188,
+    "/auth/reset-password": 188,
+    "/layout": 132,
+    "/": 114
+  },
+  "ignore": [
+    "/api/",
+    "/_not-found",
+    "/icon.png",
+    "/apple-icon.png",
+    "/manifest.webmanifest"
+  ]
+}

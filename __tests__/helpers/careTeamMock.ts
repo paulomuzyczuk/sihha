@@ -24,6 +24,7 @@ export function chain(result: QueryResult): any {
     'gte',
     'lte',
     'lt',
+    'in',
     'is',
     'not',
     'order',
@@ -63,7 +64,7 @@ export interface MockRecipientRow {
 
 export const RECIPIENT_ROW: MockRecipientRow = {
   id: 'recipient-1',
-  display_name: 'Omar',
+  display_name: 'Alex Doe',
   kind: 'human',
   timezone: 'America/Manaus',
   log_cadence: 'one_per_day',
@@ -76,11 +77,13 @@ export const RECIPIENT_ROW: MockRecipientRow = {
 export function membershipRows(
   role: 'owner' | 'caregiver' | 'clinician' | 'recipient',
   recipient = RECIPIENT_ROW,
+  clinicalProfile: string | null = null,
 ) {
   return [
     {
       recipient_id: recipient.id,
       role,
+      clinical_profile: clinicalProfile,
       receives_alerts: false,
       care_recipients: recipient,
     },

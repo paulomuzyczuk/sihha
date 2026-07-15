@@ -12,13 +12,16 @@ import {
 
 // Create-recipient-from-template (M4, design §3.5/§5.4): platform ADMIN
 // instantiates a care circle from a care profile — recipient row + metric
-// definitions + alert config — and becomes its owner member so the circle is
-// immediately manageable. Everything after creation (team, metrics, alerts)
-// is owner-editable; the template is a starting point, not a live link.
+// definitions + alert config. Every circle is created with an explicitly
+// assigned owner member (owner_user_id, picked by the admin — e.g. a family
+// member owns the pet's circle), so no circle exists without an owner.
+// Everything after creation (team, metrics, alerts) is owner-editable; the
+// template is a starting point, not a live link.
 
 const CreateSchema = z.object({
   template_id: z.string().min(1),
   display_name: z.string().min(1).max(200),
+  owner_user_id: z.string().uuid(),
   timezone: z
     .string()
     .min(1)
@@ -57,7 +60,6 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const auth = await authorizeRequest(req, [ROLES.ADMIN]);
   if (!auth.ok) return auth.response;
-  const { user } = auth;
 
   let body: unknown;
   try {
@@ -76,7 +78,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       { status: 400 },
     );
   }
-  const { template_id, display_name, timezone } = parsed.data;
+  const { template_id, display_name, timezone, owner_user_id } = parsed.data;
 
   const template = getTemplate(template_id);
   if (!template) {
@@ -87,6 +89,16 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   const adminDb = getAdminDbClient();
+
+  // The assigned owner must be an existing account — a circle must never be
+  // created ownerless or pointing at a dangling user id.
+  const ownerLookup = await adminDb.auth.admin.getUserById(owner_user_id);
+  if (ownerLookup.error || !ownerLookup.data?.user) {
+    return NextResponse.json(
+      { error: ERROR_MESSAGES.VALIDATION_FAILED },
+      { status: 400 },
+    );
+  }
 
   const { data: recipient, error: recipientError } = await adminDb
     .from('care_recipients')
@@ -129,7 +141,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       ? { error: null }
       : await adminDb.from('care_team_members').insert({
           recipient_id: recipient.id,
-          user_id: user.id,
+          user_id: owner_user_id,
           role: 'owner',
           member_label: null,
           receives_alerts: false,

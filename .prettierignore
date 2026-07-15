@@ -4,3 +4,6 @@ docs/
 # Dependencies and build output
 node_modules/
 .next/
+
+# Design-system reference bundle (verbatim handoff artifacts, not app code)
+design_system/

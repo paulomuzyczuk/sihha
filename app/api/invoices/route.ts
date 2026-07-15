@@ -3,6 +3,7 @@ import { randomUUID } from 'crypto';
 import { z } from 'zod';
 import { ERROR_MESSAGES } from '../../../lib/constants';
 import { authorizeCareRequest } from '../../../services/careTeam';
+import { validateFileUrlDomain } from '../../../services/apiAuth';
 import { logger } from '../../../services/logger';
 
 const invoiceSchema = z.object({
@@ -15,20 +16,15 @@ const invoiceSchema = z.object({
   }),
 });
 
-function validateFileUrlDomain(fileUrl: string): boolean {
-  try {
-    const url = new URL(fileUrl);
-    const supabaseUrl = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!);
-    return url.hostname === supabaseUrl.hostname;
-  } catch (_e) {
-    return false;
-  }
-}
-
 export async function POST(req: NextRequest): Promise<NextResponse> {
   // 1. Authenticate and authorize via care-circle membership (M3): the
-  //    recipient's own uploads or the owner's audit path.
-  const auth = await authorizeCareRequest(req, ['recipient', 'owner']);
+  //    recipient's own uploads, a caregiver logging a grocery run, or the
+  //    owner's audit path.
+  const auth = await authorizeCareRequest(req, [
+    'recipient',
+    'owner',
+    'caregiver',
+  ]);
   if (!auth.ok) return auth.response;
   const { user, userClient, recipient } = auth;
 

@@ -11,6 +11,23 @@ import { checkIpRateLimit, checkUserRateLimit } from './rateLimiter';
 //   authoritative representation of each piece of knowledge.
 
 /**
+ * SSRF guard for client-supplied storage URLs (invoices, prescriptions):
+ * only files hosted on this deployment's own Supabase project are accepted.
+ */
+export function validateFileUrlDomain(fileUrl: string): boolean {
+  try {
+    const url = new URL(fileUrl);
+    // https only — a matching host over http:// (or file://, ftp://…) is a
+    // downgrade attempt. Base rule: block URL schemes other than https://.
+    if (url.protocol !== 'https:') return false;
+    const supabaseUrl = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!);
+    return url.hostname === supabaseUrl.hostname;
+  } catch (_e) {
+    return false;
+  }
+}
+
+/**
  * Best-effort client IP for rate-limit keying.
  *
  * x-forwarded-for is appended to by every hop and its LEFTMOST entry is

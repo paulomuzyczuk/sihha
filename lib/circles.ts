@@ -7,6 +7,7 @@
 export interface CareCircle {
   recipientId: string;
   role: string;
+  clinicalProfile?: string | null;
   displayName: string;
   kind: string;
 }
@@ -46,4 +47,22 @@ export function resolveSelectedCircle(
 export function withRecipient(route: string, recipientId: string): string {
   const separator = route.includes('?') ? '&' : '?';
   return `${route}${separator}recipient=${encodeURIComponent(recipientId)}`;
+}
+
+/**
+ * Appends the ?view_as= param the platform admin's role-view switcher uses,
+ * plus ?view_profile= when the clinician preview carries a specialist
+ * (psychologist/psychiatrist). No-op without a preview role, so callers can
+ * compose it unconditionally.
+ */
+export function withViewAs(
+  route: string,
+  viewAs?: string | null,
+  viewProfile?: string | null,
+): string {
+  if (!viewAs) return route;
+  const separator = route.includes('?') ? '&' : '?';
+  const base = `${route}${separator}view_as=${encodeURIComponent(viewAs)}`;
+  if (!viewProfile) return base;
+  return `${base}&view_profile=${encodeURIComponent(viewProfile)}`;
 }

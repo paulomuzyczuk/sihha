@@ -27,8 +27,8 @@ export default function CircleSwitcher({
     <select
       value={selectedId}
       onChange={(e) => onChange(e.target.value)}
-      className="form-input"
-      style={{ width: 'auto', padding: '0.45rem 0.75rem', fontSize: '0.85rem' }}
+      className="select"
+      style={{ width: 'auto' }}
       aria-label={t('circles.switcherAria')}
     >
       {circles.map((circle) => (

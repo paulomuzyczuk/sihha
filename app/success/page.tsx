@@ -3,6 +3,7 @@
 import React, { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '../../components/supabaseClient';
+import { Button, Card, Icon } from '../../components/ui';
 import { DATE_LOCALES } from '../../lib/i18n/dictionaries';
 import { useI18n } from '../../lib/i18n/I18nProvider';
 
@@ -32,9 +33,7 @@ function SuccessContent() {
           className="spinner"
           style={{ width: '32px', height: '32px', borderWidth: '3px' }}
         ></div>
-        <p style={{ color: 'hsl(var(--text-secondary))', fontSize: '0.9rem' }}>
-          {t('common.checkingSession')}
-        </p>
+        <p className="t-sm t-muted">{t('common.checkingSession')}</p>
       </div>
     );
   }
@@ -56,61 +55,40 @@ function SuccessContent() {
       style={{
         minHeight: '100vh',
         flexDirection: 'column',
-        padding: '2rem 1.5rem',
+        padding: 'var(--space-8) var(--space-6)',
       }}
     >
-      <div className="card" style={{ maxWidth: '420px', textAlign: 'center' }}>
-        <div style={{ marginBottom: '1.5rem' }}>
-          <svg
-            width="64"
-            height="64"
-            viewBox="0 0 64 64"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            aria-hidden="true"
-          >
-            <circle
-              cx="32"
-              cy="32"
-              r="32"
-              fill="hsl(var(--success))"
-              opacity="0.15"
-            />
-            <circle
-              cx="32"
-              cy="32"
-              r="24"
-              fill="hsl(var(--success))"
-              opacity="0.25"
-            />
-            <path
-              d="M20 32l9 9 16-16"
-              stroke="hsl(var(--success))"
-              strokeWidth="3"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+      <Card style={{ maxWidth: '420px', textAlign: 'center' }}>
+        <div
+          className="flex-center"
+          style={{
+            width: 72,
+            height: 72,
+            margin: '0 auto var(--space-5)',
+            borderRadius: 'var(--radius-pill)',
+            background: 'var(--success-bg)',
+            color: 'var(--success)',
+          }}
+        >
+          <Icon name="check-circle" size={36} />
         </div>
 
-        <h2 style={{ marginBottom: '0.5rem' }}>{t('success.saved')}</h2>
+        <h2 style={{ marginBottom: 'var(--space-2)' }}>{t('success.saved')}</h2>
 
         {formattedDate && (
           <p
-            style={{
-              color: 'hsl(var(--text-secondary))',
-              fontSize: '0.9rem',
-              marginBottom: '2rem',
-            }}
+            className="t-sm t-muted"
+            style={{ marginBottom: 'var(--space-6)' }}
           >
             {formattedDate}
           </p>
         )}
 
-        <button className="btn" onClick={() => router.push('/dashboard')}>
+        <Button block onClick={() => router.push('/dashboard')}>
+          <Icon name="plus" size={18} />
           {t('success.newLog')}
-        </button>
-      </div>
+        </Button>
+      </Card>
     </div>
   );
 }

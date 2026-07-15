@@ -11,6 +11,7 @@ const VALUE_TYPES = [
   'time_range',
   'enum',
   'medication_checklist',
+  'text',
 ] as const;
 
 describe('care templates', () => {

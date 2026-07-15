@@ -74,7 +74,7 @@ describe('POST /api/admin/invite (M3: membership provisioning)', () => {
     jest.clearAllMocks();
     resetRateLimiter();
     for (const key of Object.keys(adminTables)) delete adminTables[key];
-    process.env.NEXT_PUBLIC_SITE_URL = 'https://sihha.example.com';
+    process.env.NEXT_PUBLIC_SITE_URL = 'https://sihha-five.vercel.app';
   });
 
   it('returns 401 when Authorization header is absent', async () => {
@@ -110,7 +110,7 @@ describe('POST /api/admin/invite (M3: membership provisioning)', () => {
     expect(mockInviteUser).toHaveBeenCalledWith(
       'nova@example.com',
       expect.objectContaining({
-        redirectTo: 'https://sihha.example.com/auth/reset-password',
+        redirectTo: 'https://sihha-five.vercel.app/auth/reset-password',
       }),
     );
     expect(membershipInsert).toHaveBeenCalledWith({
@@ -118,8 +118,20 @@ describe('POST /api/admin/invite (M3: membership provisioning)', () => {
       user_id: 'invited-uuid',
       role: 'clinician',
       member_label: 'Psicóloga',
+      clinical_profile: null,
       receives_alerts: false,
     });
+  });
+
+  it('carries the clinical profile onto the membership when sent', async () => {
+    mockHappyPath();
+    const res = await POST(
+      makeRequest({ ...validBody, clinical_profile: 'psychologist' }),
+    );
+    expect(res.status).toBe(201);
+    expect(membershipInsert).toHaveBeenCalledWith(
+      expect.objectContaining({ clinical_profile: 'psychologist' }),
+    );
   });
 
   it('provisions a recipient membership without a label', async () => {

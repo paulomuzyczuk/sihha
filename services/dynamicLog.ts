@@ -2,13 +2,15 @@ import { z } from 'zod';
 
 // Dynamic validation for care_log_entries.values: the schema is BUILT from
 // the recipient's metric_definitions at request time — the platform's core
-// "schema as data" move. Each value_type maps to one Zod validator; weekly
-// metrics that are not due on the recipient-local day must be null (the same
+// "schema as data" move. Each value_type maps to one Zod validator; metrics
+// that are not due on the recipient-local day must be null (the same
 // semantics the legacy weekly household tasks had).
 
 export interface MetricDefinitionRow {
   key: string;
   label: string;
+  /** Trimmed name for compact surfaces (goal balloons); null → label */
+  short_label?: string | null;
   value_type:
     | 'scale'
     | 'boolean'
@@ -16,16 +18,31 @@ export interface MetricDefinitionRow {
     | 'duration_minutes'
     | 'time_range'
     | 'enum'
-    | 'medication_checklist';
+    | 'medication_checklist'
+    | 'text';
   config: {
     min?: number;
     max?: number;
     options?: Array<number | { value: string; label: string }>;
     depends_on?: string;
+    /** With depends_on: applies only when the parent equals this value */
+    depends_value?: string;
+    /** Scale pills labeled per step, e.g. {"1": "Muito abatido"} */
+    anchors?: Record<string, string>;
   };
-  cadence: 'daily' | 'weekly';
+  cadence: 'daily' | 'weekly' | 'monthly' | 'quarterly';
   cadence_day: number | null;
+  cadence_days: number[] | null;
+  cadence_start: string | null;
+  /** Form grouping heading (per-circle data); null renders ungrouped */
+  section?: string | null;
+  /** Optional second grouping level inside the section */
+  subsection?: string | null;
+  /** Footnote at the bottom of the section's page (e.g. scale citation) */
+  section_note?: string | null;
   filled_by: string;
+  /** Specialist scope for clinician metrics; null = any clinician */
+  clinician_profile?: string | null;
   required: boolean;
   sort_order: number;
   active: boolean;
@@ -54,11 +71,73 @@ export function localWeekdayMon0(
   return order.indexOf(name);
 }
 
+/** Weekday (Monday = 0) of a YYYY-MM-DD calendar date. */
+export function weekdayMon0FromDateStr(dateStr: string): number {
+  return (new Date(`${dateStr}T00:00:00Z`).getUTCDay() + 6) % 7;
+}
+
+function daysInMonth(year: number, month1to12: number): number {
+  return new Date(Date.UTC(year, month1to12, 0)).getUTCDate();
+}
+
+/**
+ * Whether a metric is due on the recipient-local calendar day. Custom
+ * cadences anchor to cadence_start (Google-Calendar semantics): weekly on
+ * the cadence_days set (or the single cadence_day / the start date's
+ * weekday), monthly on the start date's day-of-month (clamped in shorter
+ * months), quarterly every third month — never before the start date.
+ * Legacy weekly rows carry cadence_day and no start date.
+ */
 export function isDueToday(
-  def: Pick<MetricDefinitionRow, 'cadence' | 'cadence_day'>,
+  def: Pick<
+    MetricDefinitionRow,
+    'cadence' | 'cadence_day' | 'cadence_days' | 'cadence_start'
+  >,
   weekdayMon0: number,
+  todayLocalDate: string,
 ): boolean {
-  return def.cadence === 'daily' || def.cadence_day === weekdayMon0;
+  if (def.cadence === 'daily') return true;
+  if (def.cadence_start && todayLocalDate < def.cadence_start) return false;
+  if (def.cadence === 'weekly') {
+    if (def.cadence_days && def.cadence_days.length > 0) {
+      return def.cadence_days.includes(weekdayMon0);
+    }
+    const day =
+      def.cadence_day ??
+      (def.cadence_start ? weekdayMon0FromDateStr(def.cadence_start) : null);
+    return day === weekdayMon0;
+  }
+  if (!def.cadence_start) return false;
+  const [startY, startM, startD] = def.cadence_start.split('-').map(Number);
+  const [y, m, d] = todayLocalDate.split('-').map(Number);
+  if (d !== Math.min(startD, daysInMonth(y, m))) return false;
+  if (def.cadence === 'monthly') return true;
+  return ((y - startY) * 12 + (m - startM)) % 3 === 0;
+}
+
+/**
+ * Reserved enum value meaning "explicitly nothing today" ("Sem consulta
+ * hoje"). It satisfies a required dropdown while leaving the metric's
+ * dependents dormant, exactly like an empty parent.
+ */
+export const NONE_ENUM_VALUE = 'none';
+
+/**
+ * Whether a dependent metric's parent is empty, explicitly "none", or (when
+ * depends_value narrows the trigger) any other answer than the one that
+ * reveals this metric.
+ */
+export function parentIsEmpty(
+  def: Pick<MetricDefinitionRow, 'config'>,
+  values: Record<string, unknown>,
+): boolean {
+  const parent = def.config.depends_on;
+  if (!parent) return false;
+  const parentValue = values[parent] ?? null;
+  if (parentValue === null || parentValue === NONE_ENUM_VALUE) return true;
+  const trigger = def.config.depends_value;
+  // String-compare so boolean parents work ("true" reveals on Sim)
+  return trigger !== undefined && String(parentValue) !== trigger;
 }
 
 const TIME_RE = /^\d{2}:\d{2}$/;
@@ -130,6 +209,8 @@ function baseSchemaFor(def: MetricDefinitionRow): z.ZodTypeAny {
     }
     case 'medication_checklist':
       return medicationChecklistSchema;
+    case 'text':
+      return z.string().trim().min(1).max(200);
   }
 }
 
@@ -139,14 +220,15 @@ export type ValuesValidation =
 
 /**
  * Validates a raw values object against the recipient's active metric
- * definitions for the given recipient-local weekday. Unknown keys are
- * rejected; not-due weekly metrics are forced to null; metrics whose
+ * definitions for the given recipient-local day. Unknown keys are
+ * rejected; not-due metrics are forced to null; metrics whose
  * depends_on parent is null are coerced to null (e.g. exercise_minutes
  * without exercise_type).
  */
 export function validateValues(
   definitions: MetricDefinitionRow[],
   weekdayMon0: number,
+  todayLocalDate: string,
   raw: unknown,
 ): ValuesValidation {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
@@ -170,7 +252,7 @@ export function validateValues(
   for (const def of active) {
     const provided = input[def.key];
 
-    if (!isDueToday(def, weekdayMon0)) {
+    if (!isDueToday(def, weekdayMon0, todayLocalDate)) {
       if (provided != null) {
         issues.push(`${def.key}: not due today, must be null`);
       }
@@ -179,7 +261,8 @@ export function validateValues(
     }
 
     if (provided == null) {
-      if (def.required) {
+      // A required dependent is exempt while its parent is empty/"none"
+      if (def.required && !parentIsEmpty(def, input)) {
         issues.push(`${def.key}: required`);
       }
       values[def.key] = null;
@@ -196,11 +279,11 @@ export function validateValues(
     values[def.key] = result.data;
   }
 
-  // Coupled optional metrics: a dependent value without its parent is noise
-  // (attended-without-appointment would mis-count in aggregates) — null it.
+  // Coupled metrics: a dependent value without its parent (or with an
+  // explicit "none" parent) is noise — attended-without-appointment would
+  // mis-count in aggregates — so null it.
   for (const def of active) {
-    const parent = def.config.depends_on;
-    if (parent && values[parent] == null) {
+    if (def.config.depends_on && parentIsEmpty(def, values)) {
       values[def.key] = null;
     }
   }

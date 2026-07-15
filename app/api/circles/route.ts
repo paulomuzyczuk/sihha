@@ -11,6 +11,7 @@ import { logger } from '../../../services/logger';
 interface CircleMembershipRow {
   recipient_id: string;
   role: string;
+  clinical_profile: string | null;
   care_recipients: { display_name: string; kind: string };
 }
 
@@ -46,7 +47,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const adminDb = getAdminDbClient();
   const { data, error } = await adminDb
     .from('care_team_members')
-    .select('recipient_id, role, care_recipients!inner(display_name, kind)')
+    .select(
+      'recipient_id, role, clinical_profile, care_recipients!inner(display_name, kind)',
+    )
     .eq('user_id', user.id)
     .eq('care_recipients.active', true);
 
@@ -66,6 +69,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     (row) => ({
       recipientId: row.recipient_id,
       role: row.role,
+      clinicalProfile: row.clinical_profile ?? null,
       displayName: row.care_recipients.display_name,
       kind: row.care_recipients.kind,
     }),

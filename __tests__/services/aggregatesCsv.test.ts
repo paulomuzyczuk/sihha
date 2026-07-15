@@ -73,11 +73,11 @@ describe('aggregatesToCsv', () => {
   });
 
   it('emits one row per bucket with machine-friendly values', () => {
-    expect(lines[1]).toBe('2026-07-01,2,3,50,2,45,walking:1; running:1');
+    expect(lines[1]).toBe('01/07/2026,2,3,50,2,45,walking:1; running:1');
   });
 
   it('leaves cells empty when a metric has no values in the bucket', () => {
-    expect(lines[2]).toBe('2026-07-02,1,,,,,');
+    expect(lines[2]).toBe('02/07/2026,1,,,,,');
   });
 
   it('uses CRLF line endings and no trailing newline', () => {

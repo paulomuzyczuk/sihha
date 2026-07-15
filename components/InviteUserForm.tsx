@@ -80,6 +80,7 @@ export default function InviteUserForm({ accessToken }: InviteUserFormProps) {
                   PROFILE_OPTIONS.find((opt) => opt.value === profile)!
                     .labelKey,
                 ),
+          clinical_profile: profile === 'patient' ? undefined : profile,
         }),
       });
 
@@ -165,7 +166,11 @@ export default function InviteUserForm({ accessToken }: InviteUserFormProps) {
           </select>
         </div>
 
-        <button type="submit" className="btn" disabled={loading}>
+        <button
+          type="submit"
+          className="btn btn-primary btn-block"
+          disabled={loading}
+        >
           {loading ? t('invite.submitting') : t('invite.submit')}
         </button>
       </form>

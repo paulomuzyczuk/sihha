@@ -3,6 +3,7 @@
 import React from 'react';
 import { LOCALES } from '../lib/i18n/dictionaries';
 import { useI18n } from '../lib/i18n/I18nProvider';
+import { Button } from './ui';
 
 /** Compact PT | EN switch, rendered in every page's chrome. */
 export default function LanguageToggle() {
@@ -12,25 +13,19 @@ export default function LanguageToggle() {
     <div
       role="group"
       aria-label={t('common.languageAria')}
-      style={{ display: 'flex', gap: '0.25rem' }}
+      style={{ display: 'flex', gap: 'var(--space-1)' }}
     >
       {LOCALES.map((option) => (
-        <button
+        <Button
           key={option}
-          type="button"
+          size="sm"
+          variant={locale === option ? 'primary' : 'ghost'}
           onClick={() => setLocale(option)}
-          className={locale === option ? 'btn' : 'btn btn-secondary'}
           aria-pressed={locale === option}
-          style={{
-            width: 'auto',
-            padding: '0.35rem 0.6rem',
-            fontSize: '0.75rem',
-            borderRadius: '8px',
-            textTransform: 'uppercase',
-          }}
+          style={{ textTransform: 'uppercase', fontSize: 'var(--fs-caption)' }}
         >
           {option}
-        </button>
+        </Button>
       ))}
     </div>
   );
