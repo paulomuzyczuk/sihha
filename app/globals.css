@@ -838,6 +838,21 @@ select.form-input {
   width: 100%;
 }
 
+/* Care agreement (M6): recipient commitments beside the team + breach cards.
+   align-items:start keeps the shorter right column from stretching to match
+   the recipient list. Collapses to a single column on narrow screens. */
+.contract-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-5);
+  align-items: start;
+}
+@media (max-width: 720px) {
+  .contract-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ============================================================
    App chrome — the dark moss top bar (sample.html .app-top)
    ============================================================ */

@@ -5,17 +5,24 @@ import CareContractView from './CareContractView';
 import GoalsDashboard from './GoalsDashboard';
 import InvoiceUploadForm from './InvoiceUploadForm';
 import LogForm from './LogForm';
+import LongTermGoalsView from './LongTermGoalsView';
 import { Button, Card } from './ui';
 import { useI18n } from '../lib/i18n/I18nProvider';
 
 // The patient's home (M6): a small menu picks which interface shows —
-// the monthly goal, the self-report questionnaires, invoice upload, or the
-// read-only care agreement.
+// the monthly behavioural goals, the long-term life goals, the self-report
+// questionnaires, invoice upload, or the read-only care agreement.
 
-type PatientView = 'goals' | 'questionnaires' | 'invoices' | 'contract';
+type PatientView =
+  | 'goals'
+  | 'longterm'
+  | 'questionnaires'
+  | 'invoices'
+  | 'contract';
 
 const VIEWS: PatientView[] = [
   'goals',
+  'longterm',
   'questionnaires',
   'invoices',
   'contract',
@@ -37,6 +44,7 @@ export default function PatientPanel({
 
   const labels: Record<PatientView, string> = {
     goals: t('patient.menuGoals'),
+    longterm: t('patient.menuLongTerm'),
     questionnaires: t('patient.menuQuestionnaires'),
     invoices: t('patient.menuInvoices'),
     contract: t('patient.menuContract'),
@@ -72,6 +80,7 @@ export default function PatientPanel({
       {view === 'goals' && (
         <GoalsDashboard recipientId={recipientId} viewAs={viewAs} />
       )}
+      {view === 'longterm' && <LongTermGoalsView />}
       {view === 'questionnaires' && (
         <LogForm
           medications={[]}

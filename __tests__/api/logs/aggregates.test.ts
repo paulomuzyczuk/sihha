@@ -99,8 +99,8 @@ const METRIC_DEFS = [
     sort_order: 4,
   },
   {
-    key: 'fed_natasha',
-    label: 'Alimentou a Natasha',
+    key: 'fed_pet',
+    label: 'Alimentou a Rex',
     value_type: 'boolean',
     config: {},
     sort_order: 5,
@@ -116,7 +116,7 @@ function makeEntry(createdAt: string, mood: number) {
       sleep: { start: '22:00', end: '06:00', hours: 8 },
       exercise_type: 'walking',
       exercise_minutes: 30,
-      fed_natasha: true,
+      fed_pet: true,
       // a value with no metric definition must never reach the response
       notes: 'sensitive free text',
     },
@@ -258,7 +258,7 @@ describe('GET /api/logs/aggregates (M4: generic per-metric series)', () => {
       'sleep',
       'exercise_type',
       'exercise_minutes',
-      'fed_natasha',
+      'fed_pet',
     ]);
 
     const mood = series[0];
@@ -277,8 +277,8 @@ describe('GET /api/logs/aggregates (M4: generic per-metric series)', () => {
     const exerciseMinutes = series[4];
     expect(exerciseMinutes.points[0]).toMatchObject({ count: 2, sum: 60 });
 
-    const fedNatasha = series[5];
-    expect(fedNatasha.points[0].pct).toBe(100);
+    const fedPet = series[5];
+    expect(fedPet.points[0].pct).toBe(100);
 
     const serialized = JSON.stringify(body);
     expect(serialized).not.toContain('notes');
@@ -356,7 +356,7 @@ describe('GET /api/logs/aggregates?format=csv (clinician export)', () => {
     expect(lines[0]).toBe(
       'period,logs,Humor (avg),Medicações (%),Sono (avg),' +
         'Tipo de exercício,Duração do exercício (count),' +
-        'Duração do exercício (min),Alimentou a Natasha (%)',
+        'Duração do exercício (min),Alimentou a Rex (%)',
     );
     expect(lines[1]).toBe('01/07/2026,2,3,50,8,walking:2,2,60,100');
     expect(lines[2]).toBe('02/07/2026,1,5,50,8,walking:1,1,30,100');

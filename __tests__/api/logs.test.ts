@@ -55,8 +55,8 @@ const DEFINITIONS = [
     active: true,
   },
   {
-    key: 'fed_natasha',
-    label: 'Alimentou Natasha',
+    key: 'fed_pet',
+    label: 'Alimentou o pet',
     value_type: 'boolean',
     config: {},
     cadence: 'daily',
@@ -71,7 +71,7 @@ const DEFINITIONS = [
 const validValues = {
   mood: 4,
   sleep: { start: '22:00', end: '07:00' },
-  fed_natasha: true,
+  fed_pet: true,
 };
 
 function makeRequest(body: unknown, token: string | null = 'valid-token') {

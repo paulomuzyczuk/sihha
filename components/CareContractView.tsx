@@ -34,14 +34,16 @@ const BREACH_CLAUSE_KEYS: TranslationKey[] = [
   'contract.breach3',
 ];
 
-interface ClauseSectionProps {
+interface ClauseCardProps {
   heading: string;
   clauses: string[];
 }
 
-function ClauseSection({ heading, clauses }: ClauseSectionProps) {
+// Each kind of commitment lives in its own distinct card so the three sets
+// (recipient / caretaker / breach) read as separate agreements at a glance.
+function ClauseCard({ heading, clauses }: ClauseCardProps) {
   return (
-    <section className="stack" style={{ gap: 'var(--space-3)' }}>
+    <Card wide className="stack" style={{ gap: 'var(--space-3)' }}>
       <h4 className="t-h4">{heading}</h4>
       <ul
         className="stack"
@@ -53,7 +55,7 @@ function ClauseSection({ heading, clauses }: ClauseSectionProps) {
           </li>
         ))}
       </ul>
-    </section>
+    </Card>
   );
 }
 
@@ -61,26 +63,38 @@ export default function CareContractView() {
   const { t } = useI18n();
 
   return (
-    <Card wide className="stack" style={{ gap: 'var(--space-6)' }}>
+    <div className="stack" style={{ gap: 'var(--space-6)', width: '100%' }}>
       <div className="stack" style={{ gap: 'var(--space-2)' }}>
         <h3 className="t-h3">{t('contract.title')}</h3>
-        <p className="t-body t-muted">{t('contract.intro')}</p>
+        <p className="t-body t-muted">
+          {t('contract.intro')} {t('contract.reward')}
+        </p>
       </div>
 
-      <ClauseSection
-        heading={t('contract.recipientHeading')}
-        clauses={RECIPIENT_CLAUSE_KEYS.map((key) => t(key))}
-      />
-      <ClauseSection
-        heading={t('contract.caretakerHeading')}
-        clauses={CARETAKER_CLAUSE_KEYS.map((key) => t(key))}
-      />
-      <ClauseSection
-        heading={t('contract.breachHeading')}
-        clauses={BREACH_CLAUSE_KEYS.map((key) => t(key))}
-      />
+      {/* Recipient commitments on the left; the team's commitments and the
+          breach tiers stacked on the right. Collapses to one column on
+          narrow screens (see .contract-grid in globals.css). */}
+      <div className="contract-grid">
+        <ClauseCard
+          heading={t('contract.recipientHeading')}
+          clauses={RECIPIENT_CLAUSE_KEYS.map((key) => t(key))}
+        />
+        <div className="stack" style={{ gap: 'var(--space-5)' }}>
+          <ClauseCard
+            heading={t('contract.caretakerHeading')}
+            clauses={CARETAKER_CLAUSE_KEYS.map((key) => t(key))}
+          />
+          <ClauseCard
+            heading={t('contract.breachHeading')}
+            clauses={BREACH_CLAUSE_KEYS.map((key) => t(key))}
+          />
+        </div>
+      </div>
 
-      <p className="t-caption t-muted">{t('contract.footer')}</p>
-    </Card>
+      <div className="stack" style={{ gap: 'var(--space-2)' }}>
+        <p className="t-caption t-muted">{t('contract.reviewNote')}</p>
+        <p className="t-caption t-muted">{t('contract.footer')}</p>
+      </div>
+    </div>
   );
 }
