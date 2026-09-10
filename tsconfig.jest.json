@@ -1,6 +1,9 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "noEmit": false
+    "noEmit": false,
+    // Next.js keeps jsx: "preserve" for its own compiler; ts-jest needs a real
+    // JSX transform so the React-render tests compile to createElement.
+    "jsx": "react-jsx"
   }
 }

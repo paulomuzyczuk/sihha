@@ -6,6 +6,8 @@ import GoalsDashboard from './GoalsDashboard';
 import LogForm from './LogForm';
 import PrescriptionUploadForm from './PrescriptionUploadForm';
 import EvaluationUploadForm from './EvaluationUploadForm';
+import CrisisPlanView from './CrisisPlanView';
+import { useCrisisPlan } from './useCrisisPlan';
 import { Button, Card } from './ui';
 import { useI18n } from '../lib/i18n/I18nProvider';
 
@@ -19,6 +21,7 @@ type ClinicianView =
   | 'prescriptions'
   | 'evaluations'
   | 'goals'
+  | 'crisis'
   | 'indicators';
 
 interface ClinicianPanelProps {
@@ -42,6 +45,7 @@ export default function ClinicianPanel({
 }: ClinicianPanelProps) {
   const { t } = useI18n();
   const [view, setView] = useState<ClinicianView>('scales');
+  const crisisPlan = useCrisisPlan(recipientId, viewAs ?? null);
 
   const views: ClinicianView[] = [
     'scales',
@@ -52,6 +56,7 @@ export default function ClinicianPanel({
       ? (['evaluations'] as ClinicianView[])
       : []),
     'goals',
+    'crisis',
     'indicators',
   ];
 
@@ -65,6 +70,7 @@ export default function ClinicianPanel({
     prescriptions: t('clinician.menuPrescriptions'),
     evaluations: t('clinician.menuEvaluations'),
     goals: t('clinician.menuGoals'),
+    crisis: t('clinician.menuCrisis'),
     indicators: t('clinician.menuIndicators'),
   };
 
@@ -127,6 +133,7 @@ export default function ClinicianPanel({
       {view === 'goals' && (
         <GoalsDashboard recipientId={recipientId} viewAs={viewAs} />
       )}
+      {view === 'crisis' && <CrisisPlanView plan={crisisPlan} />}
       {view === 'indicators' && (
         <ClinicianDashboard
           accessToken={accessToken}

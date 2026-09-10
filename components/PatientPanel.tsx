@@ -6,6 +6,7 @@ import GoalsDashboard from './GoalsDashboard';
 import InvoiceUploadForm from './InvoiceUploadForm';
 import LogForm from './LogForm';
 import LongTermGoalsView from './LongTermGoalsView';
+import { useCareContract } from './useCareContract';
 import { Button, Card } from './ui';
 import { useI18n } from '../lib/i18n/I18nProvider';
 
@@ -41,6 +42,10 @@ export default function PatientPanel({
 }: PatientPanelProps) {
   const { t } = useI18n();
   const [view, setView] = useState<PatientView>('goals');
+  const { contract, selectedVersionId, selectVersion } = useCareContract(
+    recipientId,
+    viewAs ?? null,
+  );
 
   const labels: Record<PatientView, string> = {
     goals: t('patient.menuGoals'),
@@ -97,7 +102,13 @@ export default function PatientPanel({
       {view === 'invoices' && (
         <InvoiceUploadForm recipientId={recipientId} viewAs={viewAs} />
       )}
-      {view === 'contract' && <CareContractView />}
+      {view === 'contract' && (
+        <CareContractView
+          contract={contract}
+          selectedVersionId={selectedVersionId}
+          onSelectVersion={selectVersion}
+        />
+      )}
     </div>
   );
 }

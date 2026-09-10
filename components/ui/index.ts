@@ -3,6 +3,8 @@ export type { ButtonProps, ButtonVariant, ButtonSize } from './Button';
 export { Field } from './Field';
 export type { FieldProps } from './Field';
 export { Input } from './Input';
+export { DateInput } from './DateInput';
+export type { DateInputProps } from './DateInput';
 export { Textarea } from './Textarea';
 export { Select } from './Select';
 export { Pill, PillGroup } from './Pill';

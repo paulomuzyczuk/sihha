@@ -10,6 +10,8 @@ import PatientPanel from '../../components/PatientPanel';
 import CircleSwitcher from '../../components/CircleSwitcher';
 import ClinicianPanel from '../../components/ClinicianPanel';
 import MetricEditor from '../../components/MetricEditor';
+import CrisisPlanEditor from '../../components/CrisisPlanEditor';
+import CareContractEditor from '../../components/CareContractEditor';
 import LanguageToggle from '../../components/LanguageToggle';
 import RoleViewSwitcher from '../../components/RoleViewSwitcher';
 import { Alert, Button, Card } from '../../components/ui';
@@ -306,6 +308,14 @@ export default function DashboardPage() {
               recipientId={selectedCircle.recipientId}
             />
             <InvoiceUploadForm recipientId={selectedCircle.recipientId} />
+            <CrisisPlanEditor
+              recipientId={selectedCircle.recipientId}
+              accessToken={accessToken}
+            />
+            <CareContractEditor
+              recipientId={selectedCircle.recipientId}
+              accessToken={accessToken}
+            />
           </div>
         ) : (
           <PatientPanel

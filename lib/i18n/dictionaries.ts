@@ -105,6 +105,7 @@ export const pt = {
   'clinician.menuPrescriptions': 'Receitas',
   'clinician.menuEvaluations': 'Avaliações e Testes',
   'clinician.menuGoals': 'Metas do paciente',
+  'clinician.menuCrisis': 'Plano de Crise',
   'clinician.menuIndicators': 'Indicadores',
   'clinician.noScales':
     'Nenhuma sessão/consulta com preenchimento pendente. Se quiser editar uma consulta passada, selecione a data abaixo e preencha o formulário de novo — o registro anterior será sobrescrito.',
@@ -213,37 +214,45 @@ export const pt = {
   'patient.noQuestionnaires':
     'Nenhum questionário para responder hoje. Volte quando houver um novo.',
 
-  // Care agreement — recipient's read-only view of the signed contrato (M6).
-  // The clauses are generic examples, not any one recipient's terms.
+  // Crisis plan — the care team's read-only protocol for an emergency. Names,
+  // phone numbers, protocol steps AND protocol titles are recipient data
+  // served from the crisis_* tables; only this surrounding chrome is
+  // localised. Nothing here may name a person: who fills an undecided slot is
+  // itself recipient data, which is why crisis.tbd is role-neutral.
+  'crisis.title': 'Plano de Crise',
+  'crisis.intro':
+    'Protocolo acordado com a equipe de cuidado: quem decide, para onde encaminhar e como agir em uma emergência. Siga a ordem de contato abaixo.',
+  'crisis.primaryLabel': 'contato principal',
+  'crisis.fallbackLabel': 'se não atender',
+  'crisis.whatsappOnly': 'contatar somente por WhatsApp',
+  'crisis.transportLabel': 'Transporte (serviço ambulatorial)',
+  'crisis.responsibleLabel': 'Responsáveis',
+  'crisis.loading': 'Carregando o plano…',
+  'crisis.tbd': 'A ser definido',
+  'crisis.reviewNote':
+    'Este plano deve ser revisto com a equipe de cuidado sempre que contatos ou responsáveis mudarem.',
+
+  // Care agreement — recipient's read-only view of the signed agreement (M6),
+  // versioned and Supabase-backed. Every party reads the whole version
+  // history, not just the text in force. The clauses are recipient-specific
+  // DATA held in recipient-scoped tables; only this surrounding chrome is
+  // localised.
   'contract.title': 'Contrato de convivência',
   'contract.intro':
     'Este é o termo acordado com a sua equipe de cuidado. Aqui, em um só lugar, ficam os seus compromissos do dia a dia e o que a sua equipe se compromete a fazer por você.',
-  'contract.recipientHeading': 'Seus compromissos',
-  'contract.recipient1':
-    'Manter a rotina combinada — horário de acordar, refeições e sono',
-  'contract.recipient2':
-    'Cuidar do seu espaço e das tarefas domésticas combinadas',
-  'contract.recipient3': 'Comparecer às consultas e reuniões com a equipe',
-  'contract.recipient4': 'Tomar os medicamentos nas doses e horários corretos',
-  'contract.recipient5': 'Tratar todos em casa com respeito, sem agressões',
-  'contract.caretakerHeading': 'Compromissos da sua equipe com você',
-  'contract.caretaker1': 'Cuidar das contas e do patrimônio combinados',
-  'contract.caretaker2':
-    'Encontrar você regularmente e acompanhar o tratamento de perto',
-  'contract.caretaker3': 'Apoiar o seu planejamento de vida e carreira',
-  'contract.caretaker4': 'Estar disponível para orientação no dia a dia',
-  'contract.breachHeading': 'Se os combinados não forem cumpridos',
-  'contract.breach1': 'Deslizes leves: pequenos ajustes no orçamento livre',
-  'contract.breach2':
-    'Deslizes repetidos ou moderados: pausa temporária da mesada e do orçamento livre',
-  'contract.breach3':
-    'Faltas graves: medidas combinadas previamente com a equipe clínica',
+  'contract.loading': 'Carregando o contrato…',
+  'contract.empty': 'Nenhum contrato registrado ainda.',
+  'contract.versionLabel': 'Versão do contrato',
+  'contract.versionOption': 'Versão {number} — {date}',
+  'contract.versionCurrent': 'em vigor',
+  'contract.versionSuperseded':
+    'Esta é uma versão anterior do contrato, substituída por uma mais recente.',
+  'contract.witnessesLabel': 'Testemunhas',
+  'contract.agreedOn': 'Acordado em {date}',
   'contract.reward':
-    'A cada mês, ao cumprir as metas combinadas com a sua equipe, você recebe a mesada acordada para apoiar esse caminho. Essas metas são definidas a partir dos compromissos deste acordo de convivência.',
+    'A cada mês, ao cumprir as metas combinadas com a sua equipe, você recebe {amount} de mesada para apoiar esse caminho. Essas metas são definidas a partir dos compromissos deste contrato de convivência.',
   'contract.reviewNote':
-    'Estes termos serão revistos a cada [período combinado] e poderão ser flexibilizados conforme a avaliação da equipe de cuidado.',
-  'contract.footer':
-    'Combinado e assinado junto com a sua equipe de cuidado e testemunhas.',
+    'Estes termos serão revistos conforme combinado com a equipe de cuidado e poderão ser flexibilizados conforme a avaliação da equipe.',
 
   // Long-term goals (M6): the recipient's own tab. Generic example goals,
   // localised; a deployment replaces them with the recipient's own.
@@ -640,6 +649,7 @@ export const en: Record<TranslationKey, string> = {
   'clinician.menuPrescriptions': 'Prescriptions',
   'clinician.menuEvaluations': 'Evaluations & Tests',
   'clinician.menuGoals': "Patient's goals",
+  'clinician.menuCrisis': 'Crisis Plan',
   'clinician.menuIndicators': 'Indicators',
   'clinician.noScales':
     'No session/appointment awaiting feedback. To edit a past appointment, select its date below and fill in the form again — the previous record will be overwritten.',
@@ -741,36 +751,45 @@ export const en: Record<TranslationKey, string> = {
   'patient.noQuestionnaires':
     'No questionnaire to answer today. Come back when a new one is up.',
 
+  // Crisis plan — the care team's read-only protocol for an emergency. Names,
+  // phone numbers, protocol steps AND protocol titles are recipient data
+  // served from the crisis_* tables; only this surrounding chrome is
+  // localised. Nothing here may name a person: who fills an undecided slot is
+  // itself recipient data, which is why crisis.tbd is role-neutral.
+  'crisis.title': 'Crisis Plan',
+  'crisis.intro':
+    'Protocol agreed with the care team: who decides, where to refer to, and how to act in an emergency. Follow the contact order below.',
+  'crisis.primaryLabel': 'main contact',
+  'crisis.fallbackLabel': 'if unreachable',
+  'crisis.whatsappOnly': 'reach via WhatsApp only',
+  'crisis.transportLabel': 'Transport (ambulatory service)',
+  'crisis.responsibleLabel': 'Who acts',
+  'crisis.loading': 'Loading the plan…',
+  'crisis.tbd': 'To be defined',
+  'crisis.reviewNote':
+    'Review this plan with the care team whenever contacts or responsibilities change.',
+
+  // Care agreement — recipient's read-only view of the signed agreement (M6),
+  // versioned and Supabase-backed. Every party reads the whole version
+  // history, not just the text in force. The clauses are recipient-specific
+  // DATA held in recipient-scoped tables; only this surrounding chrome is
+  // localised.
   'contract.title': 'Care agreement',
   'contract.intro':
     'This is what you agreed with your care team. In one place, it holds your day-to-day commitments and what your team commits to doing for you.',
-  'contract.recipientHeading': 'Your commitments',
-  'contract.recipient1': 'Keep the agreed routine — wake time, meals and sleep',
-  'contract.recipient2':
-    'Look after your space and the household tasks you agreed to',
-  'contract.recipient3': 'Attend appointments and check-ins with the team',
-  'contract.recipient4': 'Take your medication at the correct doses and times',
-  'contract.recipient5':
-    'Treat everyone at home with respect, without aggression',
-  'contract.caretakerHeading': "Your team's commitments to you",
-  'contract.caretaker1': 'Handle the agreed bills and finances',
-  'contract.caretaker2':
-    'Meet with you regularly and follow the treatment closely',
-  'contract.caretaker3': 'Support your life and career planning',
-  'contract.caretaker4': 'Be available for day-to-day guidance',
-  'contract.breachHeading': 'If the commitments are not met',
-  'contract.breach1':
-    'Minor slips: small adjustments to the discretionary budget',
-  'contract.breach2':
-    'Repeated or moderate slips: a temporary pause of the allowance and discretionary budget',
-  'contract.breach3':
-    'Serious breaches: measures agreed in advance with the clinical team',
+  'contract.loading': 'Loading the agreement…',
+  'contract.empty': 'No agreement recorded yet.',
+  'contract.versionLabel': 'Agreement version',
+  'contract.versionOption': 'Version {number} — {date}',
+  'contract.versionCurrent': 'in force',
+  'contract.versionSuperseded':
+    'This is an earlier version of the agreement, replaced by a later one.',
+  'contract.witnessesLabel': 'Witnesses',
+  'contract.agreedOn': 'Agreed on {date}',
   'contract.reward':
-    'Each month, by meeting the goals agreed with your team, you receive the agreed allowance to support that path. These goals are set from the commitments in this care agreement.',
+    'Each month, by meeting the goals agreed with your team, you earn {amount} as an allowance to support that path. These goals are set from the commitments in this care agreement.',
   'contract.reviewNote':
-    'These terms are reviewed every [agreed period] and may be eased as the care team sees fit.',
-  'contract.footer':
-    'Agreed and signed together with your care team and witnesses.',
+    'These terms are reviewed as agreed with the care team and may be eased as the team sees fit.',
 
   'longterm.title': 'Long-term goals',
   'longterm.intro':
