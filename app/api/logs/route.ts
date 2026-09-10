@@ -13,6 +13,7 @@ import {
 } from '../../../services/dynamicLog';
 import { computeLocationVerified } from '../../../services/geofence';
 import { checkAndAlertLowStock } from '../../../services/stockAlert';
+import { checkAndFireMetricAlertRules } from '../../../services/metricAlert';
 import { logger } from '../../../services/logger';
 
 const envelopeSchema = z.object({
@@ -300,6 +301,18 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       'logs: low-stock check failed',
       { route: '/api/logs', action: 'stock-check' },
       stockError,
+    );
+  }
+
+  // 7. Metric alert rules (side effect, never blocks the response) — same
+  //    fire-and-forget posture as the stock check above.
+  try {
+    await checkAndFireMetricAlertRules(adminDb, recipient.id, validated.values);
+  } catch (alertError) {
+    logger.error(
+      'logs: metric alert rule check failed',
+      { route: '/api/logs', action: 'alert-rule-check' },
+      alertError,
     );
   }
 
