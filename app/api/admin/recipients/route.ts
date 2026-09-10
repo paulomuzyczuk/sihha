@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { ERROR_MESSAGES } from '../../../../lib/constants';
+import { ERROR_MESSAGES, ROLES } from '../../../../lib/constants';
 import { getAdminDbClient } from '../../../../services/db';
-import { authorizeInstitutionAdminRequest } from '../../../../services/institutionAuth';
-import { isInstitutionMember } from '../../../../services/institutionMembers';
+import { authorizeRequest } from '../../../../services/apiAuth';
 import { logger } from '../../../../services/logger';
 import {
   CARE_TEMPLATES,
@@ -43,7 +42,7 @@ const CreateSchema = z.object({
 
 /** Templates the admin can instantiate (identity only, for the picker). */
 export async function GET(req: NextRequest): Promise<NextResponse> {
-  const auth = await authorizeInstitutionAdminRequest(req);
+  const auth = await authorizeRequest(req, [ROLES.ADMIN]);
   if (!auth.ok) return auth.response;
 
   return NextResponse.json({
@@ -59,7 +58,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  const auth = await authorizeInstitutionAdminRequest(req);
+  const auth = await authorizeRequest(req, [ROLES.ADMIN]);
   if (!auth.ok) return auth.response;
 
   let body: unknown;
@@ -91,21 +90,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   const adminDb = getAdminDbClient();
 
-  // The assigned owner must be an existing account AND a member of this
-  // institution — a circle must never be created ownerless, pointing at a
-  // dangling user id, or handed to someone outside the institution (which
-  // would grant cross-tenant access, and would let this institution's admin
-  // pull an arbitrary known user id into their own institution unasked).
+  // The assigned owner must be an existing account — a circle must never be
+  // created ownerless or pointing at a dangling user id.
   const ownerLookup = await adminDb.auth.admin.getUserById(owner_user_id);
   if (ownerLookup.error || !ownerLookup.data?.user) {
-    return NextResponse.json(
-      { error: ERROR_MESSAGES.VALIDATION_FAILED },
-      { status: 400 },
-    );
-  }
-  if (
-    !(await isInstitutionMember(adminDb, auth.institutionId, owner_user_id))
-  ) {
     return NextResponse.json(
       { error: ERROR_MESSAGES.VALIDATION_FAILED },
       { status: 400 },
@@ -119,7 +107,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       kind: template.kind,
       timezone,
       log_cadence: parsed.data.log_cadence ?? template.log_cadence,
-      institution_id: auth.institutionId,
       // Geofencing is off by default (decision #3) — per-recipient opt-in
     })
     .select('id, display_name')

@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { ERROR_MESSAGES } from '../../../../lib/constants';
+import { ERROR_MESSAGES, ROLES } from '../../../../lib/constants';
 import { getAdminDbClient } from '../../../../services/db';
-import { authorizeInstitutionAdminRequest } from '../../../../services/institutionAuth';
-import { isRecipientInInstitution } from '../../../../services/institutionMembers';
+import { authorizeRequest } from '../../../../services/apiAuth';
 import {
   createConsumableItem,
   listConsumableItems,
@@ -24,7 +23,7 @@ const CreateSchema = z.object({
 });
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
-  const auth = await authorizeInstitutionAdminRequest(req);
+  const auth = await authorizeRequest(req, [ROLES.ADMIN]);
   if (!auth.ok) return auth.response;
 
   const recipientId = req.nextUrl.searchParams.get('recipient_id');
@@ -36,21 +35,12 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   }
 
   const adminDb = getAdminDbClient();
-  if (
-    !(await isRecipientInInstitution(adminDb, recipientId, auth.institutionId))
-  ) {
-    return NextResponse.json(
-      { error: 'Forbidden: Insufficient permissions' },
-      { status: 403 },
-    );
-  }
-
   const items = await listConsumableItems(adminDb, recipientId);
   return NextResponse.json({ items });
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  const auth = await authorizeInstitutionAdminRequest(req);
+  const auth = await authorizeRequest(req, [ROLES.ADMIN]);
   if (!auth.ok) return auth.response;
 
   let body: unknown;
@@ -73,15 +63,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const { recipient_id, ...input } = parsed.data;
 
   const adminDb = getAdminDbClient();
-  if (
-    !(await isRecipientInInstitution(adminDb, recipient_id, auth.institutionId))
-  ) {
-    return NextResponse.json(
-      { error: 'Forbidden: Insufficient permissions' },
-      { status: 403 },
-    );
-  }
-
   const { data: item, error } = await createConsumableItem(
     adminDb,
     recipient_id,

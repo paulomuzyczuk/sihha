@@ -4,12 +4,11 @@ import { ERROR_MESSAGES, ROLES } from '../lib/constants';
 import { getAdminDbClient } from './db';
 import { getAuthenticatedUser, getClientIp } from './apiAuth';
 import { checkIpRateLimit, checkUserRateLimit } from './rateLimiter';
-import { isInstitutionAdminOfRecipient } from './institutionAuth';
 
 // M3 authorization: what a user may do is decided by their membership in a
 // care circle (care_team_members.role), not by a global JWT tier. The JWT
-// app_metadata keeps only the platform ADMIN flag (checked here and in the
-// institution-admin gateway). This is the single authoritative preamble for
+// app_metadata keeps only the platform ADMIN flag (see authorizeRequest,
+// still used by /api/admin/*). This is the single authoritative preamble for
 // membership-scoped routes.
 
 export type CareRole = 'owner' | 'caregiver' | 'clinician' | 'recipient';
@@ -31,9 +30,6 @@ export interface CareRecipientRow {
   geo_lng: number | null;
   geo_radius_m: number | null;
   active: boolean;
-  institution_id: string;
-  /** Embedded institutions!inner(status) join — the suspended-institution gate. */
-  institutions: { status: string };
 }
 
 // Clinical profiles a clinician member can carry (care_team_members
@@ -114,7 +110,7 @@ export async function authorizeCareRequest(
   const { data: memberships, error } = await adminDb
     .from('care_team_members')
     .select(
-      'recipient_id, role, clinical_profile, receives_alerts, care_recipients!inner(id, display_name, kind, timezone, log_cadence, geo_lat, geo_lng, geo_radius_m, active, institution_id, institutions!inner(status))',
+      'recipient_id, role, clinical_profile, receives_alerts, care_recipients!inner(id, display_name, kind, timezone, log_cadence, geo_lat, geo_lng, geo_radius_m, active)',
     )
     .eq('user_id', user.id)
     .eq('care_recipients.active', true);
@@ -139,42 +135,8 @@ export async function authorizeCareRequest(
       : undefined;
 
   const viewAs = req.nextUrl.searchParams.get('view_as');
-  const isPlatformAdmin = user.app_metadata?.role === ROLES.ADMIN;
-
-  // Institution-wide admin read (admin console): a platform admin who is an
-  // institution_admin of the circle's institution may read ANY circle it
-  // owns WITHOUT a care_team_members membership. Gated tight: platform
-  // admin only, a valid view_as role to act as, and an explicitly named
-  // recipient the admin's institution actually owns
-  // (isInstitutionAdminOfRecipient returns null for any other
-  // institution's circle). The synthesized membership then flows through
-  // every downstream gate unchanged — the view_as check just below, the
-  // allowedRoles role gate, the suspended-institution gate, and the
-  // per-user rate limit — so this widens WHO resolves a membership, not
-  // WHAT they may then do.
-  if (
-    !membership &&
-    isPlatformAdmin &&
-    viewAs !== null &&
-    requestedRecipient &&
-    CARE_ROLE_VALUES.includes(viewAs as CareRole)
-  ) {
-    const recipient = await isInstitutionAdminOfRecipient(
-      user,
-      requestedRecipient,
-    );
-    if (recipient) {
-      membership = {
-        recipient_id: recipient.id,
-        role: viewAs as CareRole,
-        clinical_profile: null,
-        receives_alerts: false,
-        care_recipients: recipient,
-      };
-    }
-  }
-
   if (viewAs !== null) {
+    const isPlatformAdmin = user.app_metadata?.role === ROLES.ADMIN;
     if (!isPlatformAdmin || !CARE_ROLE_VALUES.includes(viewAs as CareRole)) {
       return {
         ok: false,
@@ -195,6 +157,7 @@ export async function authorizeCareRequest(
   // only meaningful alongside view_as=clinician.
   const viewProfile = req.nextUrl.searchParams.get('view_profile');
   if (viewProfile !== null) {
+    const isPlatformAdmin = user.app_metadata?.role === ROLES.ADMIN;
     if (
       !isPlatformAdmin ||
       viewAs !== 'clinician' ||
@@ -214,21 +177,6 @@ export async function authorizeCareRequest(
   }
 
   if (!membership || !allowedRoles.includes(membership.role)) {
-    return {
-      ok: false,
-      response: NextResponse.json(
-        { error: 'Forbidden: Insufficient permissions' },
-        { status: 403 },
-      ),
-    };
-  }
-
-  // Suspended-institution gate: institution status was previously enforced
-  // only on the institution-admin surface, so a suspended tenant's staff
-  // kept full clinical + FHIR $everything access through this gateway.
-  // Fail closed — anything but an explicit 'active' (including a missing
-  // embed) is rejected, with the same generic 403 as a role mismatch.
-  if (membership.care_recipients.institutions?.status !== 'active') {
     return {
       ok: false,
       response: NextResponse.json(

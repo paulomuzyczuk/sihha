@@ -9,9 +9,7 @@ export type Tab =
   | 'alerts'
   | 'counting'
   | 'invite'
-  | 'recipient'
-  | 'documents'
-  | 'institution';
+  | 'recipient';
 
 /** Tabs that operate on the selected circle. */
 export const CIRCLE_TABS: Tab[] = [
@@ -24,13 +22,8 @@ export const CIRCLE_TABS: Tab[] = [
   'counting',
 ];
 
-/** Tabs that operate on the institution as a whole, not one circle. */
-export const INSTITUTION_TABS: Tab[] = [
-  'invite',
-  'recipient',
-  'documents',
-  'institution',
-];
+/** Tabs that operate platform-wide, not one circle. */
+export const PLATFORM_TABS: Tab[] = ['invite', 'recipient'];
 
 export const TAB_LABEL_KEYS: Record<Tab, TranslationKey> = {
   companion: 'admin.viewTherapist',
@@ -42,6 +35,4 @@ export const TAB_LABEL_KEYS: Record<Tab, TranslationKey> = {
   counting: 'admin.tab.counting',
   invite: 'admin.invite',
   recipient: 'admin.newCircle',
-  documents: 'admin.tab.documents',
-  institution: 'admin.tab.institution',
 };

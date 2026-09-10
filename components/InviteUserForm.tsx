@@ -41,9 +41,9 @@ const PROFILE_OPTIONS: Array<{
 interface InviteUserFormProps {
   accessToken: string;
   /**
-   * Which circle the invitee joins. Omit when the institution has exactly
-   * one active circle — the API resolves that case on its own; an
-   * institution with several circles requires it explicitly (400
+   * Which circle the invitee joins. Omit when the deployment has exactly
+   * one active circle — the API resolves that case on its own; a
+   * deployment with several circles requires it explicitly (400
    * "recipient_id required" otherwise).
    */
   recipientId?: string;
