@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { ERROR_MESSAGES, ROLES } from '../../../../lib/constants';
+import { ERROR_MESSAGES } from '../../../../lib/constants';
 import { getAdminDbClient } from '../../../../services/db';
-import { authorizeRequest } from '../../../../services/apiAuth';
+import { authorizeInstitutionAdminRequest } from '../../../../services/institutionAuth';
+import {
+  addInstitutionStaffMember,
+  institutionMemberAccounts,
+} from '../../../../services/institutionMembers';
 import { logger } from '../../../../services/logger';
 
 // Admin-initiated onboarding (M3): the invitee is provisioned as a member of
@@ -21,7 +25,7 @@ const InviteSchema = z.object({
 });
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  const auth = await authorizeRequest(req, [ROLES.ADMIN]);
+  const auth = await authorizeInstitutionAdminRequest(req);
   if (!auth.ok) return auth.response;
 
   let body: unknown;
@@ -46,14 +50,18 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   const adminDb = getAdminDbClient();
 
-  // Circle resolution: explicit recipient_id, or the single active recipient
-  // (the flagship case — multi-circle instances must pass it explicitly).
+  // Circle resolution — always scoped to the caller's institution, so an
+  // admin can never invite into another institution's circle. Explicit
+  // recipient_id (must belong to this institution), or the institution's
+  // single active recipient; multi-circle institutions must pass it
+  // explicitly.
   let recipientId = parsed.data.recipient_id;
   if (!recipientId) {
     const { data: recipients, error: recipientsError } = await adminDb
       .from('care_recipients')
       .select('id')
-      .eq('active', true);
+      .eq('active', true)
+      .eq('institution_id', auth.institutionId);
     if (recipientsError || !recipients || recipients.length !== 1) {
       return NextResponse.json(
         { error: 'recipient_id required (multiple care circles)' },
@@ -61,6 +69,19 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
     recipientId = recipients[0].id;
+  } else {
+    const { data: recipient, error: recipientError } = await adminDb
+      .from('care_recipients')
+      .select('id')
+      .eq('id', recipientId)
+      .eq('institution_id', auth.institutionId)
+      .maybeSingle();
+    if (recipientError || !recipient) {
+      return NextResponse.json(
+        { error: 'recipient_id not found' },
+        { status: 400 },
+      );
+    }
   }
 
   const { data: invited, error: inviteError } =
@@ -71,10 +92,30 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   if (inviteError || !invited?.user) {
     if (inviteError?.code === 'email_exists' || inviteError?.status === 422) {
-      return NextResponse.json(
-        { error: 'E-mail já cadastrado' },
-        { status: 409 },
+      // Institution-scoped disclosure (audit A10): "already registered" is
+      // revealed only when the address belongs to a member of the caller's
+      // own institution — information the admin can already see via
+      // GET /api/admin/users. Any other existing account gets a response
+      // byte-identical to a successful invite, so this route cannot serve
+      // as a platform-wide account-existence oracle.
+      const accounts = await institutionMemberAccounts(
+        adminDb,
+        auth.institutionId,
       );
+      const ownMember = accounts.some(
+        (account) => account.email.toLowerCase() === email.toLowerCase(),
+      );
+      if (ownMember) {
+        return NextResponse.json(
+          { error: 'E-mail já cadastrado' },
+          { status: 409 },
+        );
+      }
+      logger.warn('invite: suppressed email_exists outside the institution', {
+        route: '/api/admin/invite',
+        action: 'invite-suppressed',
+      });
+      return NextResponse.json({ invited: true }, { status: 201 });
     }
     logger.error(
       'invite: inviteUserByEmail failed',
@@ -116,6 +157,28 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         deleteError,
       );
     }
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 },
+    );
+  }
+
+  // Enroll the invitee in the institution itself (not just the circle), so
+  // the institution's account list and future institution-scoped checks see
+  // them. Same rollback posture as the circle membership — deleting the
+  // user cascades both memberships.
+  const { error: institutionMemberError } = await addInstitutionStaffMember(
+    adminDb,
+    auth.institutionId,
+    invitedUserId,
+  );
+  if (institutionMemberError) {
+    logger.error(
+      'invite: institution membership insert failed',
+      { route: '/api/admin/invite', action: 'institution-membership', role },
+      institutionMemberError,
+    );
+    await adminDb.auth.admin.deleteUser(invitedUserId);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 },

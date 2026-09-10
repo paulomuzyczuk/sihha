@@ -60,8 +60,15 @@ export interface MockRecipientRow {
   geo_lng: number | null;
   geo_radius_m: number | null;
   active: boolean;
+  institution_id: string;
+  institutions: { status: string };
 }
 
+// institution_id/institutions default to a generic active institution —
+// authorizeCareRequest's care_recipients embed now always carries
+// institutions!inner(status) and rejects anything but 'active' (the
+// suspended-institution gate), so every membership-scoped route fixture
+// needs this to keep resolving a membership at all.
 export const RECIPIENT_ROW: MockRecipientRow = {
   id: 'recipient-1',
   display_name: 'Alex Doe',
@@ -72,7 +79,26 @@ export const RECIPIENT_ROW: MockRecipientRow = {
   geo_lng: -60.0217,
   geo_radius_m: 200,
   active: true,
+  institution_id: 'institution-1',
+  institutions: { status: 'active' },
 };
+
+/**
+ * An institution_members row shaped for the institutionAuth.ts embedded-join
+ * query (institution_members joined with institutions!inner(status)) —
+ * drop into adminTables['institution_members'] to make a mocked caller an
+ * institution_admin of one institution.
+ */
+export function institutionAdminRow(
+  institutionId: string,
+  status: 'active' | 'suspended' = 'active',
+) {
+  return {
+    institution_id: institutionId,
+    institution_role: 'institution_admin',
+    institutions: { id: institutionId, name: 'Test Institution', status },
+  };
+}
 
 export function membershipRows(
   role: 'owner' | 'caregiver' | 'clinician' | 'recipient',

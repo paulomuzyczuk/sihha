@@ -9,8 +9,10 @@ allowBuilds:
 overrides:
   # glob: GHSA-5j98-mcp5-4vw2 — leaves the unrelated glob@7 (jest) untouched
   'glob@>=10.2.0 <10.5.0': ^10.5.0
-  # postcss < 8.5.10: XSS via unescaped </style> in stringify output (runtime)
-  'postcss@<8.5.10': '>=8.5.10 <9'
+  # postcss: path-traversal/arbitrary .map read via sourceMappingURL
+  # auto-loading (GHSA-6g55-p6wh-862q and its incomplete-fix follow-up);
+  # raised past both advisories, not just the first fix's floor.
+  'postcss@<8.5.23': '>=8.5.23 <9'
   # esbuild 0.27.3–0.28.0: arbitrary file read via dev server on Windows
   'esbuild@>=0.27.3 <0.28.1': ^0.28.1
   # js-yaml: quadratic-complexity DoS in merge-key handling (both major lines)
@@ -18,3 +20,13 @@ overrides:
   'js-yaml@>=4.0.0 <4.2.0': ^4.2.0
   # @babel/core <= 7.29.0: arbitrary file read via sourceMappingURL comment
   '@babel/core@<7.29.6': ^7.29.6
+  # nanoid: non-secure/custom generators can loop indefinitely on a
+  # negative or zero size (pinned within the 3.x line other deps require)
+  'nanoid@<3.3.18': '>=3.3.18 <4'
+  # sharp: inherited libvips/libheif CVEs (transitive via next's optional
+  # image-optimization dependency, not a direct project dependency)
+  'sharp@<0.35.4': '>=0.35.4'
+  # browserslist: unbounded memory growth + crash on untrusted stats input
+  'browserslist@<4.28.7': ^4.28.7
+  # baseline-browser-mapping: process termination (DoS) on invalid input
+  'baseline-browser-mapping@<2.11.0': ^2.11.0
