@@ -101,6 +101,40 @@ describe('sendEmailAlert', () => {
     );
   });
 
+  it('omits cc when ccAdmin is false, even when the recipient differs from ADMIN_EMAIL', async () => {
+    mockSendMail.mockResolvedValueOnce({});
+    process.env.ADMIN_EMAIL = 'admin@example.com';
+
+    await sendEmailAlert('therapist@example.com', 'subject', 'body', false);
+
+    expect(mockSendMail).toHaveBeenCalledWith(
+      expect.objectContaining({ cc: undefined }),
+    );
+  });
+
+  it('defaults ccAdmin to true when the argument is omitted', async () => {
+    mockSendMail.mockResolvedValueOnce({});
+    process.env.ADMIN_EMAIL = 'admin@example.com';
+
+    await sendEmailAlert('therapist@example.com', 'subject', 'body');
+
+    expect(mockSendMail).toHaveBeenCalledWith(
+      expect.objectContaining({ cc: 'admin@example.com' }),
+    );
+  });
+
+  it('returns false when the outbound send exceeds its timeout budget', async () => {
+    jest.useFakeTimers();
+    mockSendMail.mockImplementationOnce(() => new Promise(() => {}));
+
+    const pending = sendEmailAlert('to@example.com', 'subject', 'body');
+    await jest.advanceTimersByTimeAsync(10_000);
+    const result = await pending;
+
+    expect(result).toBe(false);
+    jest.useRealTimers();
+  });
+
   it('should throw if to, subject, or body is empty', async () => {
     await expect(sendEmailAlert('', 'subject', 'body')).rejects.toThrow(
       'sendEmailAlert: expected non-empty to address, got ""',

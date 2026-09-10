@@ -70,6 +70,7 @@ describe('checkAndAlertLowStock (M3: per-recipient config + alert members)', () 
         name: 'Olanzapine',
       }),
       expect.stringContaining('Olanzapine'),
+      true,
     );
   });
 
@@ -108,6 +109,22 @@ describe('checkAndAlertLowStock (M3: per-recipient config + alert members)', () 
       'caregiver@example.com',
       'admin@example.com',
     ]);
+  });
+
+  it('CCs the admin only on the first send when several members are alerted for the same low-stock event', async () => {
+    const db = makeMockDb([LOW_STOCK], {
+      alertMembers: [
+        { user_id: 'member-1', email: 'caregiver-1@example.com' },
+        { user_id: 'member-2', email: 'caregiver-2@example.com' },
+      ],
+    });
+    await checkAndAlertLowStock(db, RECIPIENT_ID, FIXED_NOW);
+
+    // 2 flagged members + the admin fallback appended by getAlertRecipientEmails.
+    expect(mockSendEmail).toHaveBeenCalledTimes(3);
+    expect(mockSendEmail.mock.calls[0][3]).toBe(true);
+    expect(mockSendEmail.mock.calls[1][3]).toBe(false);
+    expect(mockSendEmail.mock.calls[2][3]).toBe(false);
   });
 
   it('suppresses a repeat alert within the cooldown window', async () => {

@@ -62,11 +62,13 @@ export async function checkAndAlertLowStock(
     if (emails === null) {
       emails = await getAlertRecipientEmails(adminDb, recipientId);
     }
-    for (const email of emails) {
+    // A11: CC the admin once per rule-fire, not once per addressee.
+    for (const [index, email] of emails.entries()) {
       await sendEmailAlert(
         email,
         emailText('email.lowStockSubject', { name: stock.name }),
         buildLowStockBody(stock.name, daysRemaining, now),
+        index === 0,
       );
     }
 

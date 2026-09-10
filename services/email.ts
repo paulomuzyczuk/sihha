@@ -8,6 +8,7 @@ import {
   TranslationVars,
 } from '../lib/i18n/dictionaries';
 import { logger } from './logger';
+import { withOutboundTimeout } from './outboundTimeout';
 
 /**
  * Locale for outbound alert e-mails. E-mails render server-side, where the
@@ -31,6 +32,11 @@ export async function sendEmailAlert(
   to: string,
   subject: string,
   body: string,
+  // A11: callers that loop over several addressees for the SAME alert-fire
+  // (e.g. a missing-log notice going to two caregivers) must CC the admin at
+  // most once per event, not once per addressee — pass false for every call
+  // after the first in such a loop.
+  ccAdmin: boolean = true,
 ): Promise<boolean> {
   if (!to)
     throw new Error('sendEmailAlert: expected non-empty to address, got ""');
@@ -47,16 +53,20 @@ export async function sendEmailAlert(
   });
 
   const adminEmail = process.env.ADMIN_EMAIL;
-  const cc = adminEmail && adminEmail !== to ? adminEmail : undefined;
+  const cc =
+    ccAdmin && adminEmail && adminEmail !== to ? adminEmail : undefined;
 
   try {
-    await transport.sendMail({
-      from: process.env.GMAIL_USER,
-      to,
-      cc,
-      subject,
-      text: body,
-    });
+    await withOutboundTimeout(
+      transport.sendMail({
+        from: process.env.GMAIL_USER,
+        to,
+        cc,
+        subject,
+        text: body,
+      }),
+      'sendEmailAlert:sendMail',
+    );
     return true;
   } catch (err) {
     logger.error('sendEmailAlert: transport.sendMail failed', { subject }, err);
