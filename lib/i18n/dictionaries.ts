@@ -30,6 +30,7 @@ export const pt = {
   // Shared chrome
   'common.brand': 'sihha',
   'common.signOut': 'Sair',
+  'common.dashboard': 'Painel',
   'common.checkingSession': 'Verificando sessão...',
   'common.backToLogin': 'Voltar ao login',
   'common.languageAria': 'Idioma',
@@ -389,6 +390,9 @@ export const pt = {
     'Medicamento: {name}\nDias restantes: {days}\nData do cálculo: {date}',
   'email.missingLogSubject': '[sihha] Registro diário não preenchido',
   'email.missingLogBody': 'Data: {date}\nPessoa cuidada: {name}',
+  'email.metricAlertSubject': '[sihha] Alerta: {label}',
+  'email.metricAlertBody':
+    'Regra: {label}\nMétrica: {metricKey}\nValor registrado: {value}',
 
   // Admin shell
   'admin.badge': 'Administrador',
@@ -401,6 +405,40 @@ export const pt = {
   'admin.invite': 'Convidar Usuário',
   'admin.newCircle': 'Novo Círculo',
   'admin.editMetrics': 'Editar Métricas',
+  'admin.tab.alerts': 'Regras de Alerta',
+  'admin.tab.counting': 'Contagem de Insumos',
+  'admin.tab.documents': 'Tipos de Documento',
+  'admin.tab.institution': 'Instituição',
+
+  // Institution switcher
+  'institutionSwitcher.aria': 'Instituição ativa',
+
+  // Admin console shell
+  'adminConsole.loadCirclesFailed': 'Falha ao carregar os círculos.',
+  'adminConsole.groupCircle': 'Círculo selecionado',
+  'adminConsole.groupInstitution': 'Instituição',
+  'adminConsole.selectCirclePrompt': 'Selecione um círculo para continuar.',
+  'adminConsole.noCircles':
+    'Nenhum círculo ainda. Use "Novo Círculo" para criar o primeiro.',
+  'adminConsole.selectCircle': 'Círculo',
+
+  // Admin institution panel
+  'adminInstitution.title': 'Configurações da Instituição',
+  'adminInstitution.name': 'Nome da instituição',
+  'adminInstitution.submit': 'Salvar',
+  'adminInstitution.submitting': 'Salvando...',
+  'adminInstitution.renamed': 'Instituição renomeada.',
+  'adminInstitution.renameFailed': 'Falha ao renomear a instituição.',
+
+  // Admin document types
+  'adminDocumentTypes.title': 'Tipos de Documento',
+  'adminDocumentTypes.invoice': 'Notas Fiscais',
+  'adminDocumentTypes.prescription': 'Receitas',
+  'adminDocumentTypes.evaluation': 'Avaliações',
+  'adminDocumentTypes.loadFailed': 'Falha ao carregar os tipos de documento.',
+  'adminDocumentTypes.updateFailed': 'Falha ao atualizar o tipo de documento.',
+  'adminDocumentTypes.activate': 'Ativar',
+  'adminDocumentTypes.deactivate': 'Desativar',
 
   // Invite form
   'invite.title': 'Convidar Usuário',
@@ -438,6 +476,27 @@ export const pt = {
   'recipient.ownerPlaceholder': 'Selecione o responsável',
   'recipient.submit': 'Criar círculo',
   'recipient.submitting': 'Criando círculo...',
+
+  'adminAlertRules.title': 'Regras de alerta',
+  'adminAlertRules.loadFailed': 'Não foi possível carregar as regras.',
+  'adminAlertRules.metric': 'Métrica',
+  'adminAlertRules.comparator': 'Condição',
+  'adminAlertRules.comparatorGte': 'maior ou igual a',
+  'adminAlertRules.comparatorLte': 'menor ou igual a',
+  'adminAlertRules.comparatorEq': 'igual a',
+  'adminAlertRules.threshold': 'Limite',
+  'adminAlertRules.label': 'Nome da regra',
+  'adminAlertRules.customSubject': 'Assunto do e-mail (opcional)',
+  'adminAlertRules.customBody': 'Corpo do e-mail (opcional)',
+  'adminAlertRules.active': 'Ativa',
+  'adminAlertRules.submit': 'Criar regra',
+  'adminAlertRules.submitting': 'Salvando...',
+  'adminAlertRules.createFailed': 'Não foi possível criar a regra.',
+  'adminAlertRules.created': 'Regra "{label}" criada.',
+  'adminAlertRules.empty': 'Nenhuma regra de alerta configurada.',
+  'adminAlertRules.deactivate': 'Desativar',
+  'adminAlertRules.activate': 'Ativar',
+  'adminAlertRules.updateFailed': 'Não foi possível atualizar a regra.',
 
   // Metric editor
   'metric.title': 'Métricas do Círculo',
@@ -510,6 +569,27 @@ export const pt = {
   'metric.clinicianProfile.any': 'Qualquer especialista',
   'metric.clinicianProfile.psychologist': 'Psicólogo(a)',
   'metric.clinicianProfile.psychiatrist': 'Psiquiatra',
+
+  // Admin console: consumable/supply counting
+  'consumables.title': 'Contagem de insumos',
+  'consumables.empty': 'Nenhum insumo cadastrado.',
+  'consumables.loadFailed': 'Não foi possível carregar os insumos.',
+  'consumables.daysRemaining': '{days} dias restantes',
+  'consumables.lowStock': 'Estoque baixo',
+  'consumables.recount': 'Recontar',
+  'consumables.recountPlaceholder': 'Nova quantidade',
+  'consumables.recountSubmit': 'Salvar contagem',
+  'consumables.recountFailed': 'Não foi possível salvar a contagem.',
+  'consumables.newItemTitle': 'Novo insumo',
+  'consumables.name': 'Nome',
+  'consumables.namePlaceholder': 'ex.: Fraldas geriátricas',
+  'consumables.unit': 'Unidade',
+  'consumables.unitPlaceholder': 'ex.: pacote',
+  'consumables.currentQuantity': 'Quantidade atual',
+  'consumables.dailyUsageRate': 'Uso diário',
+  'consumables.create': 'Adicionar insumo',
+  'consumables.creating': 'Adicionando...',
+  'consumables.createFailed': 'Não foi possível adicionar o insumo.',
 } as const;
 
 export type TranslationKey = keyof typeof pt;
@@ -517,6 +597,7 @@ export type TranslationKey = keyof typeof pt;
 export const en: Record<TranslationKey, string> = {
   'common.brand': 'sihha',
   'common.signOut': 'Sign out',
+  'common.dashboard': 'Dashboard',
   'common.checkingSession': 'Checking session...',
   'common.backToLogin': 'Back to login',
   'common.languageAria': 'Language',
@@ -846,6 +927,9 @@ export const en: Record<TranslationKey, string> = {
     'Medication: {name}\nDays remaining: {days}\nCalculation date: {date}',
   'email.missingLogSubject': '[sihha] Daily log not submitted',
   'email.missingLogBody': 'Date: {date}\nCare recipient: {name}',
+  'email.metricAlertSubject': '[sihha] Alert: {label}',
+  'email.metricAlertBody':
+    'Rule: {label}\nMetric: {metricKey}\nRecorded value: {value}',
 
   'admin.badge': 'Administrator',
   'admin.viewTherapist': 'View as Therapist',
@@ -857,6 +941,36 @@ export const en: Record<TranslationKey, string> = {
   'admin.invite': 'Invite User',
   'admin.newCircle': 'New Circle',
   'admin.editMetrics': 'Edit Metrics',
+  'admin.tab.alerts': 'Alert Rules',
+  'admin.tab.counting': 'Supply Counting',
+  'admin.tab.documents': 'Document Types',
+  'admin.tab.institution': 'Institution',
+
+  'institutionSwitcher.aria': 'Active institution',
+
+  'adminConsole.loadCirclesFailed': 'Failed to load circles.',
+  'adminConsole.groupCircle': 'Selected circle',
+  'adminConsole.groupInstitution': 'Institution',
+  'adminConsole.selectCirclePrompt': 'Select a circle to continue.',
+  'adminConsole.noCircles':
+    'No circles yet. Use "New Circle" to create the first one.',
+  'adminConsole.selectCircle': 'Circle',
+
+  'adminInstitution.title': 'Institution Settings',
+  'adminInstitution.name': 'Institution name',
+  'adminInstitution.submit': 'Save',
+  'adminInstitution.submitting': 'Saving...',
+  'adminInstitution.renamed': 'Institution renamed.',
+  'adminInstitution.renameFailed': 'Failed to rename the institution.',
+
+  'adminDocumentTypes.title': 'Document Types',
+  'adminDocumentTypes.invoice': 'Invoices',
+  'adminDocumentTypes.prescription': 'Prescriptions',
+  'adminDocumentTypes.evaluation': 'Evaluations',
+  'adminDocumentTypes.loadFailed': 'Failed to load document types.',
+  'adminDocumentTypes.updateFailed': 'Failed to update the document type.',
+  'adminDocumentTypes.activate': 'Activate',
+  'adminDocumentTypes.deactivate': 'Deactivate',
 
   'invite.title': 'Invite User',
   'invite.profile.therapist': 'Therapist',
@@ -891,6 +1005,27 @@ export const en: Record<TranslationKey, string> = {
   'recipient.ownerPlaceholder': 'Select the owner',
   'recipient.submit': 'Create circle',
   'recipient.submitting': 'Creating circle...',
+
+  'adminAlertRules.title': 'Alert rules',
+  'adminAlertRules.loadFailed': 'Could not load the rules.',
+  'adminAlertRules.metric': 'Metric',
+  'adminAlertRules.comparator': 'Condition',
+  'adminAlertRules.comparatorGte': 'greater than or equal to',
+  'adminAlertRules.comparatorLte': 'less than or equal to',
+  'adminAlertRules.comparatorEq': 'equal to',
+  'adminAlertRules.threshold': 'Threshold',
+  'adminAlertRules.label': 'Rule name',
+  'adminAlertRules.customSubject': 'E-mail subject (optional)',
+  'adminAlertRules.customBody': 'E-mail body (optional)',
+  'adminAlertRules.active': 'Active',
+  'adminAlertRules.submit': 'Create rule',
+  'adminAlertRules.submitting': 'Saving...',
+  'adminAlertRules.createFailed': 'Could not create the rule.',
+  'adminAlertRules.created': 'Rule "{label}" created.',
+  'adminAlertRules.empty': 'No alert rules configured yet.',
+  'adminAlertRules.deactivate': 'Deactivate',
+  'adminAlertRules.activate': 'Activate',
+  'adminAlertRules.updateFailed': 'Could not update the rule.',
 
   'metric.title': 'Circle Metrics',
   'metric.typeFrozenNote':
@@ -962,6 +1097,27 @@ export const en: Record<TranslationKey, string> = {
   'metric.clinicianProfile.any': 'Any specialist',
   'metric.clinicianProfile.psychologist': 'Psychologist',
   'metric.clinicianProfile.psychiatrist': 'Psychiatrist',
+
+  // Admin console: consumable/supply counting
+  'consumables.title': 'Supply counting',
+  'consumables.empty': 'No supplies registered yet.',
+  'consumables.loadFailed': 'Could not load supplies.',
+  'consumables.daysRemaining': '{days} days remaining',
+  'consumables.lowStock': 'Low stock',
+  'consumables.recount': 'Recount',
+  'consumables.recountPlaceholder': 'New quantity',
+  'consumables.recountSubmit': 'Save count',
+  'consumables.recountFailed': 'Could not save the count.',
+  'consumables.newItemTitle': 'New supply',
+  'consumables.name': 'Name',
+  'consumables.namePlaceholder': 'e.g. Incontinence pads',
+  'consumables.unit': 'Unit',
+  'consumables.unitPlaceholder': 'e.g. pack',
+  'consumables.currentQuantity': 'Current quantity',
+  'consumables.dailyUsageRate': 'Daily usage',
+  'consumables.create': 'Add supply',
+  'consumables.creating': 'Adding...',
+  'consumables.createFailed': 'Could not add the supply.',
 };
 
 export const DICTIONARIES: Record<Locale, Record<TranslationKey, string>> = {

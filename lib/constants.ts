@@ -13,6 +13,11 @@ export const API_ROUTES = {
   ADMIN_INVITE: '/api/admin/invite',
   ADMIN_RECIPIENTS: '/api/admin/recipients',
   ADMIN_USERS: '/api/admin/users',
+  ADMIN_CONSUMABLES: '/api/admin/consumables',
+  ADMIN_ALERT_RULES: '/api/admin/alert-rules',
+  ADMIN_INSTITUTIONS: '/api/admin/institutions',
+  ADMIN_DOCUMENT_TYPES: '/api/admin/document-types',
+  ADMIN_CIRCLES: '/api/admin/circles',
 } as const;
 
 // Care-circle roles (care_team_members.role) — the M3 authorization model.

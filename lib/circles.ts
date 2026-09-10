@@ -66,3 +66,13 @@ export function withViewAs(
   if (!viewProfile) return base;
   return `${base}&view_profile=${encodeURIComponent(viewProfile)}`;
 }
+
+/** Appends the ?institution= param institution-scoped admin routes expect. */
+export function withInstitution(
+  route: string,
+  institutionId?: string | null,
+): string {
+  if (!institutionId) return route;
+  const separator = route.includes('?') ? '&' : '?';
+  return `${route}${separator}institution=${encodeURIComponent(institutionId)}`;
+}
