@@ -407,38 +407,15 @@ export const pt = {
   'admin.editMetrics': 'Editar Métricas',
   'admin.tab.alerts': 'Regras de Alerta',
   'admin.tab.counting': 'Contagem de Insumos',
-  'admin.tab.documents': 'Tipos de Documento',
-  'admin.tab.institution': 'Instituição',
-
-  // Institution switcher
-  'institutionSwitcher.aria': 'Instituição ativa',
 
   // Admin console shell
   'adminConsole.loadCirclesFailed': 'Falha ao carregar os círculos.',
   'adminConsole.groupCircle': 'Círculo selecionado',
-  'adminConsole.groupInstitution': 'Instituição',
+  'adminConsole.groupPlatform': 'Geral',
   'adminConsole.selectCirclePrompt': 'Selecione um círculo para continuar.',
   'adminConsole.noCircles':
     'Nenhum círculo ainda. Use "Novo Círculo" para criar o primeiro.',
   'adminConsole.selectCircle': 'Círculo',
-
-  // Admin institution panel
-  'adminInstitution.title': 'Configurações da Instituição',
-  'adminInstitution.name': 'Nome da instituição',
-  'adminInstitution.submit': 'Salvar',
-  'adminInstitution.submitting': 'Salvando...',
-  'adminInstitution.renamed': 'Instituição renomeada.',
-  'adminInstitution.renameFailed': 'Falha ao renomear a instituição.',
-
-  // Admin document types
-  'adminDocumentTypes.title': 'Tipos de Documento',
-  'adminDocumentTypes.invoice': 'Notas Fiscais',
-  'adminDocumentTypes.prescription': 'Receitas',
-  'adminDocumentTypes.evaluation': 'Avaliações',
-  'adminDocumentTypes.loadFailed': 'Falha ao carregar os tipos de documento.',
-  'adminDocumentTypes.updateFailed': 'Falha ao atualizar o tipo de documento.',
-  'adminDocumentTypes.activate': 'Ativar',
-  'adminDocumentTypes.deactivate': 'Desativar',
 
   // Invite form
   'invite.title': 'Convidar Usuário',
@@ -943,34 +920,14 @@ export const en: Record<TranslationKey, string> = {
   'admin.editMetrics': 'Edit Metrics',
   'admin.tab.alerts': 'Alert Rules',
   'admin.tab.counting': 'Supply Counting',
-  'admin.tab.documents': 'Document Types',
-  'admin.tab.institution': 'Institution',
-
-  'institutionSwitcher.aria': 'Active institution',
 
   'adminConsole.loadCirclesFailed': 'Failed to load circles.',
   'adminConsole.groupCircle': 'Selected circle',
-  'adminConsole.groupInstitution': 'Institution',
+  'adminConsole.groupPlatform': 'General',
   'adminConsole.selectCirclePrompt': 'Select a circle to continue.',
   'adminConsole.noCircles':
     'No circles yet. Use "New Circle" to create the first one.',
   'adminConsole.selectCircle': 'Circle',
-
-  'adminInstitution.title': 'Institution Settings',
-  'adminInstitution.name': 'Institution name',
-  'adminInstitution.submit': 'Save',
-  'adminInstitution.submitting': 'Saving...',
-  'adminInstitution.renamed': 'Institution renamed.',
-  'adminInstitution.renameFailed': 'Failed to rename the institution.',
-
-  'adminDocumentTypes.title': 'Document Types',
-  'adminDocumentTypes.invoice': 'Invoices',
-  'adminDocumentTypes.prescription': 'Prescriptions',
-  'adminDocumentTypes.evaluation': 'Evaluations',
-  'adminDocumentTypes.loadFailed': 'Failed to load document types.',
-  'adminDocumentTypes.updateFailed': 'Failed to update the document type.',
-  'adminDocumentTypes.activate': 'Activate',
-  'adminDocumentTypes.deactivate': 'Deactivate',
 
   'invite.title': 'Invite User',
   'invite.profile.therapist': 'Therapist',

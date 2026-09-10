@@ -15,8 +15,6 @@ export const API_ROUTES = {
   ADMIN_USERS: '/api/admin/users',
   ADMIN_CONSUMABLES: '/api/admin/consumables',
   ADMIN_ALERT_RULES: '/api/admin/alert-rules',
-  ADMIN_INSTITUTIONS: '/api/admin/institutions',
-  ADMIN_DOCUMENT_TYPES: '/api/admin/document-types',
   ADMIN_CIRCLES: '/api/admin/circles',
 } as const;
 

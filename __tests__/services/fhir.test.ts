@@ -96,8 +96,6 @@ describe('toPatient', () => {
       geo_lng: null,
       geo_radius_m: null,
       active: true,
-      institution_id: 'institution-1',
-      institutions: { status: 'active' },
     });
     expect(patient).toEqual({
       resourceType: 'Patient',
@@ -118,8 +116,6 @@ describe('toPatient', () => {
       geo_lng: null,
       geo_radius_m: null,
       active: true,
-      institution_id: 'institution-1',
-      institutions: { status: 'active' },
     });
     expect(patient.extension).toEqual([
       {
@@ -294,8 +290,6 @@ describe('bundle and outcome helpers', () => {
       geo_lng: null,
       geo_radius_m: null,
       active: true,
-      institution_id: 'institution-1',
-      institutions: { status: 'active' },
     });
     const bundle = toSearchsetBundle([patient], 7, 'https://x.test/api/fhir');
     expect(bundle.resourceType).toBe('Bundle');

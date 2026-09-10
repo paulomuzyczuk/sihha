@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server';
 import { GET } from '../../../app/api/admin/circles/route';
+import { ROLES } from '../../../lib/constants';
 import { resetRateLimiter } from '../../../services/rateLimiter';
-import { chain, institutionAdminRow } from '../../helpers/careTeamMock';
+import { chain } from '../../helpers/careTeamMock';
 
 const mockGetUser = jest.fn();
 jest.mock('@supabase/supabase-js', () => ({
@@ -15,8 +16,6 @@ jest.mock('../../../services/db', () => ({
   }),
 }));
 
-const INSTITUTION_ID = '99999999-9999-9999-9999-999999999999';
-
 function makeRequest(token: string | null = 'valid-token'): NextRequest {
   const headers: Record<string, string> = {};
   if (token !== null) headers['Authorization'] = `Bearer ${token}`;
@@ -28,20 +27,16 @@ function makeRequest(token: string | null = 'valid-token'): NextRequest {
 
 function mockAdmin() {
   mockGetUser.mockResolvedValue({
-    data: { user: { id: 'admin-1', email: 'admin@example.com' } },
+    data: { user: { id: 'admin-1', app_metadata: { role: ROLES.ADMIN } } },
     error: null,
-  });
-  adminTables['institution_members'] = chain({
-    data: [institutionAdminRow(INSTITUTION_ID)],
   });
 }
 
 function mockNonAdmin() {
   mockGetUser.mockResolvedValue({
-    data: { user: { id: 'user-1', email: 'u@example.com' } },
+    data: { user: { id: 'user-1', app_metadata: {} } },
     error: null,
   });
-  adminTables['institution_members'] = chain({ data: [] });
 }
 
 beforeEach(() => {
@@ -55,12 +50,12 @@ describe('GET /api/admin/circles', () => {
     expect((await GET(makeRequest(null))).status).toBe(401);
   });
 
-  it('returns 403 for a caller who administers no institution', async () => {
+  it('returns 403 for a non-admin caller', async () => {
     mockNonAdmin();
     expect((await GET(makeRequest())).status).toBe(403);
   });
 
-  it("lists the caller institution's active circles", async () => {
+  it('lists every active circle platform-wide', async () => {
     mockAdmin();
     adminTables['care_recipients'] = chain({
       data: [
@@ -75,10 +70,6 @@ describe('GET /api/admin/circles', () => {
       { id: 'r1', displayName: 'Alex' },
       { id: 'r2', displayName: 'Bea' },
     ]);
-    expect(adminTables['care_recipients'].eq).toHaveBeenCalledWith(
-      'institution_id',
-      INSTITUTION_ID,
-    );
     expect(adminTables['care_recipients'].eq).toHaveBeenCalledWith(
       'active',
       true,

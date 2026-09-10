@@ -1,10 +1,9 @@
 import { NextRequest } from 'next/server';
 import { GET, POST } from '../../../app/api/admin/recipients/route';
+import { ROLES } from '../../../lib/constants';
 import { resetRateLimiter } from '../../../services/rateLimiter';
 import { getTemplate } from '../../../templates';
-import { chain, institutionAdminRow } from '../../helpers/careTeamMock';
-
-const INSTITUTION_ID = '99999999-9999-9999-9999-999999999999';
+import { chain } from '../../helpers/careTeamMock';
 
 const mockGetUser = jest.fn();
 
@@ -41,18 +40,17 @@ function makeRequest(
 const adminUser = { id: 'admin-uuid', email: 'admin@example.com' };
 
 function mockAdmin() {
-  mockGetUser.mockResolvedValue({ data: { user: adminUser }, error: null });
-  adminTables['institution_members'] = chain({
-    data: [institutionAdminRow(INSTITUTION_ID)],
+  mockGetUser.mockResolvedValue({
+    data: { user: { ...adminUser, app_metadata: { role: ROLES.ADMIN } } },
+    error: null,
   });
 }
 
 function mockNonAdmin() {
   mockGetUser.mockResolvedValue({
-    data: { user: { id: 'user-1', email: 'u@example.com' } },
+    data: { user: { id: 'user-1', app_metadata: {} } },
     error: null,
   });
-  adminTables['institution_members'] = chain({ data: [] });
 }
 
 const OWNER_UUID = '7b0a4d6e-3f2c-4d43-9a58-1c9f6f0e2a11';
@@ -163,37 +161,6 @@ describe('POST /api/admin/recipients (create from template)', () => {
     expect((await POST(makeRequest('POST', validBody))).status).toBe(400);
   });
 
-  it('returns 400 when the assigned owner exists but is not yet a member of the caller’s institution', async () => {
-    // institution_members is queried twice per request: once by the auth
-    // gateway (caller → institution_admin lookup, via .then()) and once by
-    // isInstitutionMember (owner → membership check, via .maybeSingle()).
-    // The generic chain() stub can't tell these apart, so this mock
-    // dispatches on the terminal method instead, to actually exercise the
-    // negative case.
-    mockGetUser.mockResolvedValue({ data: { user: adminUser }, error: null });
-    let lastUserIdFilter: string | undefined;
-    adminTables['institution_members'] = {
-      select: jest.fn().mockReturnThis(),
-      eq: jest.fn(function (this: unknown, field: string, value: string) {
-        if (field === 'user_id') lastUserIdFilter = value;
-        return this;
-      }),
-      then: (onFulfilled: (v: unknown) => unknown) =>
-        Promise.resolve({
-          data: [institutionAdminRow(INSTITUTION_ID)],
-          error: null,
-        }).then(onFulfilled),
-      maybeSingle: () =>
-        Promise.resolve({
-          data: lastUserIdFilter === OWNER_UUID ? null : { user_id: 'x' },
-          error: null,
-        }),
-    } as unknown as ReturnType<typeof chain>;
-
-    const res = await POST(makeRequest('POST', validBody));
-    expect(res.status).toBe(400);
-  });
-
   it('creates the recipient from the template and reports it', async () => {
     mockAdmin();
     const res = await POST(makeRequest('POST', validBody));
@@ -212,7 +179,6 @@ describe('POST /api/admin/recipients (create from template)', () => {
         kind: 'pet',
         timezone: 'America/Manaus',
         log_cadence: 'one_per_day',
-        institution_id: INSTITUTION_ID,
       }),
     );
   });

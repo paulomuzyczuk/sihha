@@ -2,8 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { API_ROUTES, CARE_ROLES } from '../../lib/constants';
-import { withInstitution, withRecipient, withViewAs } from '../../lib/circles';
-import type { InstitutionSummary } from '../../services/institutionAuth';
+import { withRecipient, withViewAs } from '../../lib/circles';
 import type { MedicationOption } from '../../lib/types';
 import LogForm from '../LogForm';
 import PatientPanel from '../PatientPanel';
@@ -13,14 +12,12 @@ import InviteUserForm from '../InviteUserForm';
 import CreateRecipientForm from '../CreateRecipientForm';
 import AdminAlertRules from './AdminAlertRules';
 import AdminSupplyCounting from './AdminSupplyCounting';
-import AdminDocumentTypes from './AdminDocumentTypes';
-import AdminInstitutionPanel from './AdminInstitutionPanel';
 import { Button } from '../ui';
 import { useI18n } from '../../lib/i18n/I18nProvider';
 import {
   type Tab,
   CIRCLE_TABS,
-  INSTITUTION_TABS,
+  PLATFORM_TABS,
   TAB_LABEL_KEYS,
 } from './adminTabs';
 
@@ -31,22 +28,16 @@ interface CircleSummary {
 
 interface AdminConsoleProps {
   accessToken: string;
-  institutionId: string | null;
-  institution: InstitutionSummary | undefined;
 }
 
 /**
- * The admin console body: pick one of the institution's circles, then work
+ * The admin console body: pick one of the deployment's circles, then work
  * across per-circle views/tabs (log/patient/clinician previews, metrics,
- * alert rules, supply counting) plus institution-level tabs (invite, new
- * circle, document types, institution settings). Replaces the old flat,
- * single-circle button bar now that one institution can own several circles.
+ * alert rules, supply counting) plus platform-wide tabs (invite, new
+ * circle). A single self-hosted deployment has one platform ADMIN tier and
+ * no tenant boundary, so circles are listed platform-wide.
  */
-export default function AdminConsole({
-  accessToken,
-  institutionId,
-  institution,
-}: AdminConsoleProps) {
+export default function AdminConsole({ accessToken }: AdminConsoleProps) {
   const { t } = useI18n();
   const [circles, setCircles] = useState<CircleSummary[]>([]);
   const [selectedId, setSelectedId] = useState('');
@@ -55,8 +46,7 @@ export default function AdminConsole({
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!institutionId) return;
-    fetch(withInstitution(API_ROUTES.ADMIN_CIRCLES, institutionId), {
+    fetch(API_ROUTES.ADMIN_CIRCLES, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
       .then((r) => (r.ok ? r.json() : Promise.reject()))
@@ -66,13 +56,12 @@ export default function AdminConsole({
         if (fetched.length > 0) setSelectedId((id) => id || fetched[0].id);
       })
       .catch(() => setError(t('adminConsole.loadCirclesFailed')));
-  }, [accessToken, institutionId, t]);
+  }, [accessToken, t]);
 
   useEffect(() => {
     if (tab !== 'companion' || !selectedId) return;
     // The companion LogForm needs the SELECTED circle's medication
-    // checklist; fetch it through the caregiver view of that circle
-    // (institution-wide read — the admin need not be a personal member).
+    // checklist; fetch it through the caregiver view of that circle.
     const url = withViewAs(
       withRecipient(API_ROUTES.MEDICATIONS, selectedId),
       CARE_ROLES.CAREGIVER,
@@ -109,8 +98,8 @@ export default function AdminConsole({
           <TabButton key={value} value={value} active={tab} onSelect={setTab} />
         ))}
       </TabGroup>
-      <TabGroup label={t('adminConsole.groupInstitution')}>
-        {INSTITUTION_TABS.map((value) => (
+      <TabGroup label={t('adminConsole.groupPlatform')}>
+        {PLATFORM_TABS.map((value) => (
           <TabButton key={value} value={value} active={tab} onSelect={setTab} />
         ))}
       </TabGroup>
@@ -124,8 +113,6 @@ export default function AdminConsole({
           <TabContent
             tab={tab}
             accessToken={accessToken}
-            institutionId={institutionId}
-            institutionName={institution?.name ?? ''}
             recipientId={selectedId}
             circleCount={circles.length}
             medications={medications}
@@ -221,16 +208,12 @@ function TabButton({
 function TabContent({
   tab,
   accessToken,
-  institutionId,
-  institutionName,
   recipientId,
   circleCount,
   medications,
 }: {
   tab: Tab;
   accessToken: string;
-  institutionId: string | null;
-  institutionName: string;
   recipientId: string;
   circleCount: number;
   medications: MedicationOption[];
@@ -276,7 +259,7 @@ function TabContent({
         />
       );
     case 'invite':
-      // A single-circle institution doesn't need to say which one — the API
+      // A single-circle deployment doesn't need to say which one — the API
       // resolves it on its own; several circles require it explicitly.
       return (
         <InviteUserForm
@@ -286,20 +269,5 @@ function TabContent({
       );
     case 'recipient':
       return <CreateRecipientForm accessToken={accessToken} />;
-    case 'documents':
-      return (
-        <AdminDocumentTypes
-          accessToken={accessToken}
-          institutionId={institutionId}
-        />
-      );
-    case 'institution':
-      return (
-        <AdminInstitutionPanel
-          accessToken={accessToken}
-          institutionId={institutionId}
-          currentName={institutionName}
-        />
-      );
   }
 }

@@ -23,9 +23,8 @@ interface AdminAlertRulesProps {
  * here — a rule with none configured falls back to the circle's flagged
  * alert members + the instance admin (services/alertRules.ts), which is the
  * same fallback the fixed low-stock alert already uses. A circle-wide member
- * picker needs an admin-scoped circle-membership read that doesn't exist yet
- * (tracked with the institution-wide admin read gateway), so it's left out
- * of this first version rather than half-built.
+ * picker needs an admin-scoped circle-membership read that doesn't exist
+ * yet, so it's left out of this first version rather than half-built.
  */
 export default function AdminAlertRules({
   accessToken,

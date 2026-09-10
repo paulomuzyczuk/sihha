@@ -21,7 +21,6 @@ import {
   HOUSEHOLD_TASK_LABELS,
   ROLES,
 } from '../lib/constants';
-import { ensureDefaultInstitution } from './ensureDefaultInstitution';
 
 // tsx doesn't auto-load .env; parse it manually so the script is self-contained
 function loadEnv(): void {
@@ -195,12 +194,6 @@ async function seedRecipient(db: SupabaseClient): Promise<string> {
     return existing.id;
   }
 
-  // care_recipients.institution_id is NOT NULL — scripts run without an
-  // auth context, so they cannot derive "the caller's institution" the way
-  // the app does; every script-created recipient lands in one reusable
-  // local Default Institution instead.
-  const institutionId = await ensureDefaultInstitution(db);
-
   const { data: created, error: insertError } = await db
     .from('care_recipients')
     .insert({
@@ -208,7 +201,6 @@ async function seedRecipient(db: SupabaseClient): Promise<string> {
       kind: 'human',
       timezone,
       log_cadence: 'one_per_day',
-      institution_id: institutionId,
       geo_lat: hasGeofence ? parseFloat(lat!) : null,
       geo_lng: hasGeofence ? parseFloat(lng!) : null,
       geo_radius_m: hasGeofence ? parseInt(radius!, 10) : null,
@@ -225,7 +217,6 @@ async function seedRecipient(db: SupabaseClient): Promise<string> {
 async function seedMemberships(
   db: SupabaseClient,
   recipientId: string,
-  institutionId: string,
 ): Promise<void> {
   const alertEmails = new Set(
     [
@@ -275,25 +266,6 @@ async function seedMemberships(
     );
     if (upsertError) throw upsertError;
     console.log(`membership: ${user.email} → ${careRole}`);
-
-    // Institution-scoped admin routes (e.g. "list users in my institution")
-    // need every circle member visible, not just admins — same posture as
-    // the 20260910093010 backfill migration.
-    const institutionRole =
-      tier === ROLES.ADMIN || careRole === 'owner'
-        ? 'institution_admin'
-        : 'institution_staff';
-    const { error: institutionMemberError } = await db
-      .from('institution_members')
-      .upsert(
-        {
-          institution_id: institutionId,
-          user_id: user.id,
-          institution_role: institutionRole,
-        },
-        { onConflict: 'institution_id,user_id', ignoreDuplicates: true },
-      );
-    if (institutionMemberError) throw institutionMemberError;
   }
 }
 
@@ -364,8 +336,7 @@ async function main(): Promise<void> {
   });
 
   const recipientId = await seedRecipient(db);
-  const institutionId = await ensureDefaultInstitution(db);
-  await seedMemberships(db, recipientId, institutionId);
+  await seedMemberships(db, recipientId);
   await seedMetricDefinitions(db, recipientId);
   await seedAlertConfig(db, recipientId);
   await backfillRecipientId(db, recipientId);

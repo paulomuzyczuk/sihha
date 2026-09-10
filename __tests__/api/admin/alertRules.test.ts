@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server';
 import { GET, POST } from '../../../app/api/admin/alert-rules/route';
 import { PATCH } from '../../../app/api/admin/alert-rules/[id]/route';
-import { chain, institutionAdminRow } from '../../helpers/careTeamMock';
+import { ROLES } from '../../../lib/constants';
+import { chain } from '../../helpers/careTeamMock';
 
 const mockGetUser = jest.fn();
 jest.mock('@supabase/supabase-js', () => ({
@@ -15,7 +16,6 @@ jest.mock('../../../services/db', () => ({
   }),
 }));
 
-const INSTITUTION_ID = '99999999-9999-9999-9999-999999999999';
 const RECIPIENT_ID = '11111111-1111-1111-1111-111111111111';
 
 function makeRequest(
@@ -40,36 +40,21 @@ function makeRequest(
 
 function mockAdmin() {
   mockGetUser.mockResolvedValue({
-    data: { user: { id: 'admin-1', email: 'admin@example.com' } },
+    data: { user: { id: 'admin-1', app_metadata: { role: ROLES.ADMIN } } },
     error: null,
-  });
-  adminTables['institution_members'] = chain({
-    data: [institutionAdminRow(INSTITUTION_ID)],
   });
 }
 
 function mockNonAdmin() {
   mockGetUser.mockResolvedValue({
-    data: { user: { id: 'user-1', email: 'u@example.com' } },
+    data: { user: { id: 'user-1', app_metadata: {} } },
     error: null,
   });
-  adminTables['institution_members'] = chain({ data: [] });
 }
-
-function mockRecipientInInstitution() {
-  adminTables['care_recipients'] = chain({ data: { id: RECIPIENT_ID } });
-}
-
-function mockRecipientOutsideInstitution() {
-  adminTables['care_recipients'] = chain({ data: null });
-}
-
-beforeEach(() => {
-  jest.clearAllMocks();
-  for (const key of Object.keys(adminTables)) delete adminTables[key];
-});
 
 describe('GET /api/admin/alert-rules', () => {
+  beforeEach(() => jest.clearAllMocks());
+
   it('rejects an unauthenticated caller', async () => {
     const res = await GET(
       makeRequest('GET', {
@@ -80,7 +65,7 @@ describe('GET /api/admin/alert-rules', () => {
     expect(res.status).toBe(401);
   });
 
-  it('rejects a caller who administers no institution', async () => {
+  it('rejects a non-admin caller', async () => {
     mockNonAdmin();
     const res = await GET(
       makeRequest('GET', { search: `?recipient_id=${RECIPIENT_ID}` }),
@@ -94,18 +79,8 @@ describe('GET /api/admin/alert-rules', () => {
     expect(res.status).toBe(400);
   });
 
-  it('rejects a recipient belonging to a different institution', async () => {
+  it('lists the recipient’s rules for an admin', async () => {
     mockAdmin();
-    mockRecipientOutsideInstitution();
-    const res = await GET(
-      makeRequest('GET', { search: `?recipient_id=${RECIPIENT_ID}` }),
-    );
-    expect(res.status).toBe(403);
-  });
-
-  it('lists the recipient’s rules for an institution admin', async () => {
-    mockAdmin();
-    mockRecipientInInstitution();
     adminTables['metric_alert_rules'] = chain({
       data: [{ id: 'rule-1', recipient_id: RECIPIENT_ID }],
     });
@@ -119,9 +94,10 @@ describe('GET /api/admin/alert-rules', () => {
 });
 
 describe('POST /api/admin/alert-rules', () => {
+  beforeEach(() => jest.clearAllMocks());
+
   it('rejects invalid input (bad comparator)', async () => {
     mockAdmin();
-    mockRecipientInInstitution();
     const res = await POST(
       makeRequest('POST', {
         body: {
@@ -136,26 +112,8 @@ describe('POST /api/admin/alert-rules', () => {
     expect(res.status).toBe(400);
   });
 
-  it("rejects a rule targeting another institution's recipient", async () => {
+  it('creates a rule for an admin with valid input', async () => {
     mockAdmin();
-    mockRecipientOutsideInstitution();
-    const res = await POST(
-      makeRequest('POST', {
-        body: {
-          recipient_id: RECIPIENT_ID,
-          metric_key: 'mood_score',
-          comparator: 'lte',
-          threshold: 2,
-          label: 'Low mood',
-        },
-      }),
-    );
-    expect(res.status).toBe(403);
-  });
-
-  it('creates a rule for an institution admin with valid input', async () => {
-    mockAdmin();
-    mockRecipientInInstitution();
     const insert = jest.fn(() => chain({ data: null }));
     adminTables['metric_alert_rules'] = { insert } as unknown as ReturnType<
       typeof chain
@@ -182,7 +140,9 @@ describe('POST /api/admin/alert-rules', () => {
 });
 
 describe('PATCH /api/admin/alert-rules/[id]', () => {
-  it('rejects a caller who administers no institution', async () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('rejects a non-admin caller', async () => {
     mockNonAdmin();
     const res = await PATCH(makeRequest('PATCH', { body: { active: false } }), {
       params: Promise.resolve({ id: 'rule-1' }),
@@ -190,27 +150,13 @@ describe('PATCH /api/admin/alert-rules/[id]', () => {
     expect(res.status).toBe(403);
   });
 
-  it('rejects a rule belonging to a different institution', async () => {
+  it('updates a rule for an admin', async () => {
     mockAdmin();
-    adminTables['metric_alert_rules'] = chain({
-      data: { recipient_id: RECIPIENT_ID },
-    });
-    mockRecipientOutsideInstitution();
-    const res = await PATCH(makeRequest('PATCH', { body: { active: false } }), {
-      params: Promise.resolve({ id: 'rule-1' }),
-    });
-    expect(res.status).toBe(403);
-  });
-
-  it('updates a rule for an institution admin', async () => {
-    mockAdmin();
-    mockRecipientInInstitution();
     const eq = jest.fn(() => chain({ data: null }));
     const update = jest.fn(() => ({ eq }));
-    adminTables['metric_alert_rules'] = {
-      select: jest.fn(() => chain({ data: { recipient_id: RECIPIENT_ID } })),
-      update,
-    } as unknown as ReturnType<typeof chain>;
+    adminTables['metric_alert_rules'] = { update } as unknown as ReturnType<
+      typeof chain
+    >;
     const res = await PATCH(makeRequest('PATCH', { body: { active: false } }), {
       params: Promise.resolve({ id: 'rule-1' }),
     });

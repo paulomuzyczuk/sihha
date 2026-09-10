@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { ERROR_MESSAGES } from '../../../../../lib/constants';
+import { ERROR_MESSAGES, ROLES } from '../../../../../lib/constants';
 import { getAdminDbClient } from '../../../../../services/db';
-import { authorizeInstitutionAdminRequest } from '../../../../../services/institutionAuth';
-import { isRecipientInInstitution } from '../../../../../services/institutionMembers';
+import { authorizeRequest } from '../../../../../services/apiAuth';
 import { updateAlertRule } from '../../../../../services/alertRules';
 import { logger } from '../../../../../services/logger';
 
@@ -28,7 +27,7 @@ export async function PATCH(
   req: NextRequest,
   context: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
-  const auth = await authorizeInstitutionAdminRequest(req);
+  const auth = await authorizeRequest(req, [ROLES.ADMIN]);
   if (!auth.ok) return auth.response;
 
   const { id } = await context.params;
@@ -52,25 +51,6 @@ export async function PATCH(
   }
 
   const adminDb = getAdminDbClient();
-  const { data: existingRule } = await adminDb
-    .from('metric_alert_rules')
-    .select('recipient_id')
-    .eq('id', id)
-    .maybeSingle();
-  if (
-    !existingRule ||
-    !(await isRecipientInInstitution(
-      adminDb,
-      existingRule.recipient_id,
-      auth.institutionId,
-    ))
-  ) {
-    return NextResponse.json(
-      { error: 'Forbidden: Insufficient permissions' },
-      { status: 403 },
-    );
-  }
-
   const { error } = await updateAlertRule(adminDb, id, parsed.data);
   if (error) {
     logger.error(

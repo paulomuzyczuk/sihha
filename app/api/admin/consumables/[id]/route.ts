@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { ERROR_MESSAGES } from '../../../../../lib/constants';
+import { ERROR_MESSAGES, ROLES } from '../../../../../lib/constants';
 import { getAdminDbClient } from '../../../../../services/db';
-import { authorizeInstitutionAdminRequest } from '../../../../../services/institutionAuth';
-import { isRecipientInInstitution } from '../../../../../services/institutionMembers';
+import { authorizeRequest } from '../../../../../services/apiAuth';
 import { recountConsumableItem } from '../../../../../services/consumableItems';
 import { logger } from '../../../../../services/logger';
 
@@ -15,7 +14,7 @@ export async function PATCH(
   req: NextRequest,
   context: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
-  const auth = await authorizeInstitutionAdminRequest(req);
+  const auth = await authorizeRequest(req, [ROLES.ADMIN]);
   if (!auth.ok) return auth.response;
 
   const { id } = await context.params;
@@ -39,25 +38,6 @@ export async function PATCH(
   }
 
   const adminDb = getAdminDbClient();
-  const { data: existingItem } = await adminDb
-    .from('consumable_items')
-    .select('recipient_id')
-    .eq('id', id)
-    .maybeSingle();
-  if (
-    !existingItem ||
-    !(await isRecipientInInstitution(
-      adminDb,
-      existingItem.recipient_id,
-      auth.institutionId,
-    ))
-  ) {
-    return NextResponse.json(
-      { error: 'Forbidden: Insufficient permissions' },
-      { status: 403 },
-    );
-  }
-
   const { data: item, error } = await recountConsumableItem(
     adminDb,
     id,

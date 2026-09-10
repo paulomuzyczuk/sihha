@@ -1,9 +1,8 @@
 import { NextRequest } from 'next/server';
 import { POST } from '../../../app/api/admin/invite/route';
+import { ROLES } from '../../../lib/constants';
 import { resetRateLimiter } from '../../../services/rateLimiter';
-import { chain, institutionAdminRow } from '../../helpers/careTeamMock';
-
-const INSTITUTION_ID = '99999999-9999-9999-9999-999999999999';
+import { chain } from '../../helpers/careTeamMock';
 
 const mockGetUser = jest.fn();
 
@@ -13,7 +12,6 @@ jest.mock('@supabase/supabase-js', () => ({
 
 const mockInviteUser = jest.fn();
 const mockDeleteUser = jest.fn();
-const mockGetUserById = jest.fn();
 const adminTables: Record<string, ReturnType<typeof chain>> = {};
 
 jest.mock('../../../services/db', () => ({
@@ -22,7 +20,6 @@ jest.mock('../../../services/db', () => ({
       admin: {
         inviteUserByEmail: mockInviteUser,
         deleteUser: mockDeleteUser,
-        getUserById: mockGetUserById,
       },
     },
     from: (table: string) => adminTables[table] ?? chain({ data: [] }),
@@ -56,9 +53,9 @@ const validBody = {
 let membershipInsert: jest.Mock;
 
 function mockHappyPath() {
-  mockGetUser.mockResolvedValue({ data: { user: adminUser }, error: null });
-  adminTables['institution_members'] = chain({
-    data: [institutionAdminRow(INSTITUTION_ID)],
+  mockGetUser.mockResolvedValue({
+    data: { user: { ...adminUser, app_metadata: { role: ROLES.ADMIN } } },
+    error: null,
   });
   adminTables['care_recipients'] = chain({ data: [{ id: 'recipient-1' }] });
   const membershipChain = chain({ data: null, error: null });
@@ -73,10 +70,9 @@ function mockHappyPath() {
 
 function mockNonAdmin() {
   mockGetUser.mockResolvedValue({
-    data: { user: { id: 'user-1', email: 'u@example.com' } },
+    data: { user: { id: 'user-1', app_metadata: {} } },
     error: null,
   });
-  adminTables['institution_members'] = chain({ data: [] });
 }
 
 describe('POST /api/admin/invite (M3: membership provisioning)', () => {
@@ -93,7 +89,7 @@ describe('POST /api/admin/invite (M3: membership provisioning)', () => {
     expect(mockInviteUser).not.toHaveBeenCalled();
   });
 
-  it('returns 403 for a caller who administers no institution', async () => {
+  it('returns 403 for a non-admin caller', async () => {
     mockNonAdmin();
     const res = await POST(makeRequest(validBody));
     expect(res.status).toBe(403);
@@ -156,7 +152,7 @@ describe('POST /api/admin/invite (M3: membership provisioning)', () => {
     );
   });
 
-  it('requires recipient_id when multiple circles exist in the institution', async () => {
+  it('requires recipient_id when multiple care circles exist', async () => {
     mockHappyPath();
     adminTables['care_recipients'] = chain({
       data: [{ id: 'r1' }, { id: 'r2' }],
@@ -166,69 +162,14 @@ describe('POST /api/admin/invite (M3: membership provisioning)', () => {
     expect(mockInviteUser).not.toHaveBeenCalled();
   });
 
-  it('rejects an explicit recipient_id belonging to another institution', async () => {
-    mockHappyPath();
-    // The explicit-id branch re-queries scoped to institution_id — a
-    // recipient outside it never resolves, so this looks identical to a
-    // nonexistent id (no cross-tenant existence oracle).
-    adminTables['care_recipients'] = chain({ data: null });
-    const res = await POST(
-      makeRequest({
-        ...validBody,
-        recipient_id: 'other-institution-recipient',
-      }),
-    );
-    expect(res.status).toBe(400);
-    expect(mockInviteUser).not.toHaveBeenCalled();
-  });
-
-  it('returns 409 when the e-mail belongs to a member of the caller institution', async () => {
+  it('returns 409 when the e-mail already exists', async () => {
     mockHappyPath();
     mockInviteUser.mockResolvedValue({
       data: { user: null },
       error: { code: 'email_exists', status: 422, message: 'exists' },
-    });
-    adminTables['institution_members'] = {
-      ...chain({ data: [institutionAdminRow(INSTITUTION_ID)] }),
-      select: jest.fn((cols: string) =>
-        cols.includes('institution_role')
-          ? chain({ data: [institutionAdminRow(INSTITUTION_ID)] })
-          : chain({ data: [{ user_id: 'existing-uid' }] }),
-      ),
-    } as unknown as ReturnType<typeof chain>;
-    mockGetUserById.mockResolvedValue({
-      data: { user: { id: 'existing-uid', email: 'nova@example.com' } },
-      error: null,
     });
     const res = await POST(makeRequest(validBody));
     expect(res.status).toBe(409);
-  });
-
-  it('suppresses the oracle for an e-mail existing OUTSIDE the institution (byte-identical success)', async () => {
-    mockHappyPath();
-    mockInviteUser.mockResolvedValue({
-      data: { user: null },
-      error: { code: 'email_exists', status: 422, message: 'exists' },
-    });
-    // institutionMemberAccounts resolves to a member whose e-mail differs
-    // from the invited address — the caller's institution has no one at
-    // nova@example.com, even though the address exists elsewhere.
-    adminTables['institution_members'] = {
-      ...chain({ data: [institutionAdminRow(INSTITUTION_ID)] }),
-      select: jest.fn((cols: string) =>
-        cols.includes('institution_role')
-          ? chain({ data: [institutionAdminRow(INSTITUTION_ID)] })
-          : chain({ data: [{ user_id: 'someone-else' }] }),
-      ),
-    } as unknown as ReturnType<typeof chain>;
-    mockGetUserById.mockResolvedValue({
-      data: { user: { id: 'someone-else', email: 'other@example.com' } },
-      error: null,
-    });
-    const res = await POST(makeRequest(validBody));
-    const body = await res.json();
-    expect(res.status).toBe(201);
-    expect(body).toEqual({ invited: true });
   });
 
   it('rolls back the invited user when the membership insert fails', async () => {

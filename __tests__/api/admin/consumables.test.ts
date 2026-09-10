@@ -1,8 +1,9 @@
 import { NextRequest } from 'next/server';
 import { GET, POST } from '../../../app/api/admin/consumables/route';
 import { PATCH } from '../../../app/api/admin/consumables/[id]/route';
+import { ROLES } from '../../../lib/constants';
 import { resetRateLimiter } from '../../../services/rateLimiter';
-import { chain, institutionAdminRow } from '../../helpers/careTeamMock';
+import { chain } from '../../helpers/careTeamMock';
 
 const mockGetUser = jest.fn();
 
@@ -18,7 +19,6 @@ jest.mock('../../../services/db', () => ({
   }),
 }));
 
-const INSTITUTION_ID = '99999999-9999-9999-9999-999999999999';
 const RECIPIENT_ID = '7b0a4d6e-3f2c-4d43-9a58-1c9f6f0e2a11';
 const ITEM_ID = 'c1a4d6e3-3f2c-4d43-9a58-1c9f6f0e2a22';
 
@@ -41,30 +41,16 @@ function makeRequest(
 
 function mockAdmin() {
   mockGetUser.mockResolvedValue({
-    data: { user: { id: 'admin-uuid', email: 'admin@example.com' } },
+    data: { user: { id: 'admin-uuid', app_metadata: { role: ROLES.ADMIN } } },
     error: null,
-  });
-  adminTables['institution_members'] = chain({
-    data: [institutionAdminRow(INSTITUTION_ID)],
   });
 }
 
 function mockNonAdmin() {
   mockGetUser.mockResolvedValue({
-    data: { user: { id: 'user-1', email: 'u@example.com' } },
+    data: { user: { id: 'user-1', app_metadata: {} } },
     error: null,
   });
-  adminTables['institution_members'] = chain({ data: [] });
-}
-
-/** The recipient in the request belongs to the caller's own institution. */
-function mockRecipientInInstitution() {
-  adminTables['care_recipients'] = chain({ data: { id: RECIPIENT_ID } });
-}
-
-/** The recipient exists but belongs to a DIFFERENT institution. */
-function mockRecipientOutsideInstitution() {
-  adminTables['care_recipients'] = chain({ data: null });
 }
 
 beforeEach(() => {
@@ -82,7 +68,7 @@ describe('GET /api/admin/consumables', () => {
     );
   });
 
-  it('returns 403 for a caller who administers no institution', async () => {
+  it('returns 403 for a non-admin caller', async () => {
     mockNonAdmin();
     expect((await GET(makeRequest('GET', url))).status).toBe(403);
   });
@@ -105,15 +91,8 @@ describe('GET /api/admin/consumables', () => {
     ).toBe(400);
   });
 
-  it('returns 403 when the recipient belongs to a different institution', async () => {
-    mockAdmin();
-    mockRecipientOutsideInstitution();
-    expect((await GET(makeRequest('GET', url))).status).toBe(403);
-  });
-
   it('lists the recipient scoped items', async () => {
     mockAdmin();
-    mockRecipientInInstitution();
     adminTables['consumable_items'] = chain({
       data: [{ id: ITEM_ID, recipient_id: RECIPIENT_ID, name: 'Gaze' }],
     });
@@ -140,14 +119,13 @@ describe('POST /api/admin/consumables', () => {
     );
   });
 
-  it('returns 403 for a caller who administers no institution', async () => {
+  it('returns 403 for a non-admin caller', async () => {
     mockNonAdmin();
     expect((await POST(makeRequest('POST', url, validBody))).status).toBe(403);
   });
 
   it('returns 400 for an invalid body', async () => {
     mockAdmin();
-    mockRecipientInInstitution();
     expect(
       (await POST(makeRequest('POST', url, { ...validBody, name: '' }))).status,
     ).toBe(400);
@@ -167,15 +145,8 @@ describe('POST /api/admin/consumables', () => {
     ).toBe(400);
   });
 
-  it("returns 403 when creating an item under another institution's recipient", async () => {
-    mockAdmin();
-    mockRecipientOutsideInstitution();
-    expect((await POST(makeRequest('POST', url, validBody))).status).toBe(403);
-  });
-
   it('creates the item scoped to the recipient', async () => {
     mockAdmin();
-    mockRecipientInInstitution();
     adminTables['consumable_items'] = chain({
       data: { id: ITEM_ID, recipient_id: RECIPIENT_ID, name: 'Gaze' },
     });
@@ -199,7 +170,7 @@ describe('PATCH /api/admin/consumables/[id] (recount)', () => {
     expect(res.status).toBe(401);
   });
 
-  it('returns 403 for a caller who administers no institution', async () => {
+  it('returns 403 for a non-admin caller', async () => {
     mockNonAdmin();
     const res = await PATCH(
       makeRequest('PATCH', url, { current_quantity: 5 }),
@@ -222,32 +193,18 @@ describe('PATCH /api/admin/consumables/[id] (recount)', () => {
     ).toBe(400);
   });
 
-  it('returns 403 when the item belongs to a different institution', async () => {
-    mockAdmin();
-    adminTables['consumable_items'] = chain({
-      data: { id: ITEM_ID, recipient_id: RECIPIENT_ID },
-    });
-    mockRecipientOutsideInstitution();
-    const res = await PATCH(
-      makeRequest('PATCH', url, { current_quantity: 5 }),
-      { params },
-    );
-    expect(res.status).toBe(403);
-  });
-
-  it('returns 403 when the item id does not exist', async () => {
+  it('returns 404 when the item id does not exist', async () => {
     mockAdmin();
     adminTables['consumable_items'] = chain({ data: null });
     const res = await PATCH(
       makeRequest('PATCH', url, { current_quantity: 5 }),
       { params },
     );
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(404);
   });
 
-  it('recounts the item by id, once ownership is proven', async () => {
+  it('recounts the item by id', async () => {
     mockAdmin();
-    mockRecipientInInstitution();
     adminTables['consumable_items'] = chain({
       data: { id: ITEM_ID, recipient_id: RECIPIENT_ID, current_quantity: 5 },
     });

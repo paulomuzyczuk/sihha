@@ -1,23 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { ROLES } from '../../../../lib/constants';
 import { getAdminDbClient } from '../../../../services/db';
-import { authorizeInstitutionAdminRequest } from '../../../../services/institutionAuth';
+import { authorizeRequest } from '../../../../services/apiAuth';
 import { logger } from '../../../../services/logger';
 
 /**
- * Every active circle the caller's institution owns (id + display name),
- * for the admin console's circle selector. Institution-scoped — an admin
- * never sees another institution's circles, even ones they don't hold a
- * care_team_members membership in themselves.
+ * Every active circle on the deployment (id + display name), for the admin
+ * console's circle selector. A self-hosted deployment has one platform ADMIN
+ * tier and no tenant boundary, so this is a plain platform-wide list — the
+ * same posture as GET /api/admin/users.
  */
 export async function GET(req: NextRequest): Promise<NextResponse> {
-  const auth = await authorizeInstitutionAdminRequest(req);
+  const auth = await authorizeRequest(req, [ROLES.ADMIN]);
   if (!auth.ok) return auth.response;
 
   const adminDb = getAdminDbClient();
   const { data, error } = await adminDb
     .from('care_recipients')
     .select('id, display_name')
-    .eq('institution_id', auth.institutionId)
     .eq('active', true)
     .order('display_name');
 
