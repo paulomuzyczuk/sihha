@@ -40,6 +40,13 @@ const PROFILE_OPTIONS: Array<{
 
 interface InviteUserFormProps {
   accessToken: string;
+  /**
+   * Which circle the invitee joins. Omit when the institution has exactly
+   * one active circle — the API resolves that case on its own; an
+   * institution with several circles requires it explicitly (400
+   * "recipient_id required" otherwise).
+   */
+  recipientId?: string;
 }
 
 /**
@@ -47,7 +54,10 @@ interface InviteUserFormProps {
  * fully provisioned (access tier + clinical profile), replacing the retired
  * public sign-up + approval flow.
  */
-export default function InviteUserForm({ accessToken }: InviteUserFormProps) {
+export default function InviteUserForm({
+  accessToken,
+  recipientId,
+}: InviteUserFormProps) {
   const { t } = useI18n();
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
@@ -81,6 +91,7 @@ export default function InviteUserForm({ accessToken }: InviteUserFormProps) {
                     .labelKey,
                 ),
           clinical_profile: profile === 'patient' ? undefined : profile,
+          recipient_id: recipientId,
         }),
       });
 
