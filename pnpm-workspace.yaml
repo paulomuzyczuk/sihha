@@ -15,9 +15,14 @@ overrides:
   'postcss@<8.5.23': '>=8.5.23 <9'
   # esbuild 0.27.3–0.28.0: arbitrary file read via dev server on Windows
   'esbuild@>=0.27.3 <0.28.1': ^0.28.1
-  # js-yaml: quadratic-complexity DoS in merge-key handling (both major lines)
-  'js-yaml@<3.15.0': '>=3.15.0 <4'
-  'js-yaml@>=4.0.0 <4.2.0': ^4.2.0
+  # js-yaml: quadratic-complexity DoS in merge-key handling (GHSA-5p4m-2wfm-xmqj)
+  # and CPU exhaustion via empty merge sources (GHSA-2883-xcg3-v3hh) — both
+  # major lines raised past both advisories' floors.
+  'js-yaml@<3.15.2': '>=3.15.2 <4'
+  'js-yaml@>=4.0.0 <4.3.2': ^4.3.2
+  # brace-expansion: DoS via exponential-time expansion of consecutive
+  # non-expanding {} groups (GHSA-3jxr-9vmj-r5cp)
+  'brace-expansion@<1.1.16': ^1.1.16
   # @babel/core <= 7.29.0: arbitrary file read via sourceMappingURL comment
   '@babel/core@<7.29.6': ^7.29.6
   # nanoid: non-secure/custom generators can loop indefinitely on a
