@@ -6,6 +6,8 @@ import GoalsDashboard from './GoalsDashboard';
 import LogForm from './LogForm';
 import PrescriptionUploadForm from './PrescriptionUploadForm';
 import EvaluationUploadForm from './EvaluationUploadForm';
+import SessionNotesLookup from './SessionNotesLookup';
+import CompanionNotesFeed from './CompanionNotesFeed';
 import CrisisPlanView from './CrisisPlanView';
 import { useCrisisPlan } from './useCrisisPlan';
 import { Button, Card } from './ui';
@@ -20,6 +22,8 @@ type ClinicianView =
   | 'scales'
   | 'prescriptions'
   | 'evaluations'
+  | 'sessionNotes'
+  | 'companionNotes'
   | 'goals'
   | 'crisis'
   | 'indicators';
@@ -53,8 +57,12 @@ export default function ClinicianPanel({
       ? (['prescriptions'] as ClinicianView[])
       : []),
     ...(clinicalProfile === 'psychologist'
-      ? (['evaluations'] as ClinicianView[])
+      ? (['evaluations', 'sessionNotes'] as ClinicianView[])
       : []),
+    // Therapeutic-companion (caregiver) shift notes are shared by both
+    // specialists — the psychologist and psychiatrist counterpart to each
+    // one's own session-note lookup above.
+    'companionNotes',
     'goals',
     'crisis',
     'indicators',
@@ -69,6 +77,8 @@ export default function ClinicianPanel({
         : t('clinician.menuScales'),
     prescriptions: t('clinician.menuPrescriptions'),
     evaluations: t('clinician.menuEvaluations'),
+    sessionNotes: t('clinician.menuSessionNotes'),
+    companionNotes: t('clinician.menuCompanionNotes'),
     goals: t('clinician.menuGoals'),
     crisis: t('clinician.menuCrisis'),
     indicators: t('clinician.menuIndicators'),
@@ -128,6 +138,21 @@ export default function ClinicianPanel({
           recipientId={recipientId}
           viewAs={viewAs}
           viewProfile={viewProfile}
+        />
+      )}
+      {view === 'sessionNotes' && clinicalProfile === 'psychologist' && (
+        <SessionNotesLookup
+          recipientId={recipientId}
+          viewAs={viewAs}
+          viewProfile={viewProfile}
+        />
+      )}
+      {view === 'companionNotes' && (
+        <CompanionNotesFeed
+          accessToken={accessToken}
+          recipientId={recipientId}
+          viewAs={viewAs}
+          scope="recent"
         />
       )}
       {view === 'goals' && (

@@ -220,7 +220,7 @@ describe('POST /api/logs (M3: dynamic, membership-scoped)', () => {
       data: {
         id: 'entry-1',
         values: { mood: 2 },
-        notes: 'primeira resposta',
+        shift_notes: 'primeira resposta',
         author_id: 'caregiver-0',
         created_at: '2026-07-13T10:00:00.000Z',
       },
@@ -247,6 +247,21 @@ describe('POST /api/logs (M3: dynamic, membership-scoped)', () => {
         values: expect.objectContaining({ mood: 4 }),
       }),
     );
+  });
+
+  // Regression: the free-text notes field is stored in the shift_notes column
+  // (renamed from the legacy `notes` column by the companion-shift-notes
+  // migration pair) — the wire-level request field stays `notes` for API
+  // stability, only the DB column changed.
+  it('writes the submitted notes field into shift_notes, not notes', async () => {
+    mockCaregiver();
+    const res = await POST(
+      makeRequest({ values: validValues, notes: 'plantão tranquilo' }),
+    );
+    expect(res.status).toBe(200);
+    const inserted = mockUserInsert.mock.calls[0][0];
+    expect(inserted.shift_notes).toBe('plantão tranquilo');
+    expect(inserted.notes).toBeUndefined();
   });
 
   it('accepts a valid submission, computing sleep hours server-side', async () => {

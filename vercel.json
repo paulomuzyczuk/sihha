@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/missing-log",
       "schedule": "0 1 * * *"
+    },
+    {
+      "path": "/api/cron/fill-reminder",
+      "schedule": "10 1 * * *"
     }
   ]
 }

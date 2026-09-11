@@ -6,6 +6,8 @@ import { supabase } from '../../components/supabaseClient';
 import AppNavbar from '../../components/AppNavbar';
 import LogForm from '../../components/LogForm';
 import InvoiceUploadForm from '../../components/InvoiceUploadForm';
+import PushReminderOptIn from '../../components/PushReminderOptIn';
+import PushEnableNudge from '../../components/PushEnableNudge';
 import PatientPanel from '../../components/PatientPanel';
 import CircleSwitcher from '../../components/CircleSwitcher';
 import ClinicianPanel from '../../components/ClinicianPanel';
@@ -280,6 +282,14 @@ export default function DashboardPage() {
               medications={medications}
               recipientId={selectedCircle.recipientId}
               viewAs={viewAs}
+            />
+            <PushReminderOptIn
+              recipientId={selectedCircle.recipientId}
+              role="caregiver"
+            />
+            <PushEnableNudge
+              recipientId={selectedCircle.recipientId}
+              role="caregiver"
             />
           </div>
         ) : role === CARE_ROLES.CLINICIAN ? (

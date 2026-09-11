@@ -1,5 +1,8 @@
 export const API_ROUTES = {
   LOGS: '/api/logs',
+  LOGS_NOTES: '/api/logs/notes',
+  LOGS_COMPANION_NOTES: '/api/logs/companion-notes',
+  PUSH: '/api/push',
   INVOICES: '/api/invoices',
   INVOICES_FILE: '/api/invoices/file',
   PRESCRIPTIONS: '/api/prescriptions',

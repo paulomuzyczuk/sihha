@@ -76,6 +76,17 @@ export function weekdayMon0FromDateStr(dateStr: string): number {
   return (new Date(`${dateStr}T00:00:00Z`).getUTCDay() + 6) % 7;
 }
 
+/** Recipient-local hour (0-23) — the deadline-hour gate for daily alert crons. */
+export function localHour(timezone: string, date: Date = new Date()): number {
+  return Number(
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      hour: 'numeric',
+      hourCycle: 'h23',
+    }).format(date),
+  );
+}
+
 function daysInMonth(year: number, month1to12: number): number {
   return new Date(Date.UTC(year, month1to12, 0)).getUTCDate();
 }

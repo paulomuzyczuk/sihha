@@ -1,6 +1,7 @@
 import {
   isDueToday,
   localDate,
+  localHour,
   localWeekdayMon0,
   validateValues,
   MetricDefinitionRow,
@@ -38,6 +39,11 @@ describe('localDate / localWeekdayMon0 (recipient-local calendar)', () => {
     // 2026-07-03 is a Friday (4); 2026-07-04 a Saturday (5)
     expect(localWeekdayMon0('America/Manaus', lateNightUtc)).toBe(4);
     expect(localWeekdayMon0('UTC', lateNightUtc)).toBe(5);
+  });
+
+  it('resolves the local hour across the UTC boundary', () => {
+    expect(localHour('America/Manaus', lateNightUtc)).toBe(22);
+    expect(localHour('UTC', lateNightUtc)).toBe(2);
   });
 });
 

@@ -104,6 +104,8 @@ export const pt = {
   'clinician.menuScalesPsychiatrist': 'Feedback pós-consulta',
   'clinician.menuPrescriptions': 'Receitas',
   'clinician.menuEvaluations': 'Avaliações e Testes',
+  'clinician.menuSessionNotes': 'Notas anteriores',
+  'clinician.menuCompanionNotes': 'Recados do Acompanhante',
   'clinician.menuGoals': 'Metas do paciente',
   'clinician.menuCrisis': 'Plano de Crise',
   'clinician.menuIndicators': 'Indicadores',
@@ -154,6 +156,28 @@ export const pt = {
   'clinician.engagementAdherence': 'Adesão à medicação: {pct}%',
   'clinician.engagementLegendLogs': 'Registros por mês',
   'clinician.engagementLegendAdherence': 'Adesão à medicação (%)',
+
+  // Companion (caregiver shift) notes — read-only feed for the clinical team
+  'companionNotes.title': 'Recados do Acompanhante Terapêutico',
+  'companionNotes.introRecent':
+    'Recados deixados pelo acompanhante terapêutico nos últimos 15 dias.',
+  'companionNotes.introAll':
+    'Todos os recados deixados pelo acompanhante terapêutico.',
+  'companionNotes.loading': 'Carregando recados...',
+  'companionNotes.loadError': 'Não foi possível carregar os recados.',
+  'companionNotes.empty': 'Nenhum recado do acompanhante no período.',
+
+  // Session notes — clinician's own past-session lookup by date
+  'sessionNotes.title': 'Notas - Sessões Anteriores',
+  'sessionNotes.intro': 'Consulte a nota de uma sessão anterior pela data.',
+  'sessionNotes.dateLabel': 'Data da sessão',
+  'sessionNotes.datePlaceholder': 'dd/mm/aaaa',
+  'sessionNotes.dateInvalid': 'Data inválida.',
+  'sessionNotes.lookup': 'Buscar',
+  'sessionNotes.loading': 'Carregando nota…',
+  'sessionNotes.found': 'Nota da sessão de {date}',
+  'sessionNotes.empty': 'Nenhuma nota registrada para {date}.',
+  'sessionNotes.loadError': 'Não foi possível carregar a nota.',
 
   // Caregiver log form
   'logForm.title': 'O check-in de hoje',
@@ -213,6 +237,24 @@ export const pt = {
   'patient.menuContract': 'Contrato',
   'patient.noQuestionnaires':
     'Nenhum questionário para responder hoje. Volte quando houver um novo.',
+
+  // Device push reminders (M15)
+  'push.cardTitle': 'Lembretes neste dispositivo',
+  'push.cardBodyRecipient':
+    'Um lembrete gentil às 21h nos dias em que o seu check-in ainda estiver em aberto.',
+  'push.cardBodyCaregiver':
+    'Um lembrete às 21h quando o registro do dia ainda não tiver sido feito no seu plantão.',
+  'push.enable': 'Ativar notificações',
+  'push.denied':
+    'As notificações estão bloqueadas pelo navegador. Habilite-as nas configurações do site para receber lembretes.',
+  'push.error':
+    'Não foi possível ativar as notificações neste dispositivo. Tente novamente.',
+  'push.nudgeTitle': 'Ativar lembretes?',
+  'push.nudgeBodyRecipient':
+    'Quer que a gente te avise neste aparelho quando faltar fazer o seu check-in do dia?',
+  'push.nudgeBodyCaregiver':
+    'Quer receber um lembrete neste aparelho quando faltar registrar o dia do seu plantão?',
+  'push.nudgeDismiss': 'Agora não',
 
   // Crisis plan — the care team's read-only protocol for an emergency. Names,
   // phone numbers, protocol steps AND protocol titles are recipient data
@@ -399,6 +441,14 @@ export const pt = {
     'Medicamento: {name}\nDias restantes: {days}\nData do cálculo: {date}',
   'email.missingLogSubject': '[sihha] Registro diário não preenchido',
   'email.missingLogBody': 'Data: {date}\nPessoa cuidada: {name}',
+  'email.fillReminderCaregiverSubject':
+    '[sihha] ⏰ Registro de hoje ainda pendente',
+  'email.fillReminderCaregiverBody':
+    'O registro de {name} de {date} ainda não foi preenchido. Preencha AGORA: após a meia-noite não será mais possível registrar o dia de hoje.',
+  'email.fillReminderRecipientSubject':
+    '[sihha] ⏰ Seu check-in de hoje ainda pendente',
+  'email.fillReminderRecipientBody':
+    'Seu check-in de {date} ainda não foi preenchido. Preencha AGORA: após a meia-noite não será mais possível registrar o dia de hoje.',
   'email.metricAlertSubject': '[sihha] Alerta: {label}',
   'email.metricAlertBody':
     'Regra: {label}\nMétrica: {metricKey}\nValor registrado: {value}',
@@ -648,6 +698,8 @@ export const en: Record<TranslationKey, string> = {
   'clinician.menuScalesPsychiatrist': 'Post-appointment feedback',
   'clinician.menuPrescriptions': 'Prescriptions',
   'clinician.menuEvaluations': 'Evaluations & Tests',
+  'clinician.menuSessionNotes': 'Past notes',
+  'clinician.menuCompanionNotes': 'Companion notes',
   'clinician.menuGoals': "Patient's goals",
   'clinician.menuCrisis': 'Crisis Plan',
   'clinician.menuIndicators': 'Indicators',
@@ -698,6 +750,25 @@ export const en: Record<TranslationKey, string> = {
   'clinician.engagementAdherence': 'Medication adherence: {pct}%',
   'clinician.engagementLegendLogs': 'Log entries per month',
   'clinician.engagementLegendAdherence': 'Medication adherence (%)',
+
+  'companionNotes.title': 'Therapeutic companion notes',
+  'companionNotes.introRecent':
+    'Notes left by the therapeutic companion over the last 15 days.',
+  'companionNotes.introAll': 'Every note left by the therapeutic companion.',
+  'companionNotes.loading': 'Loading notes...',
+  'companionNotes.loadError': 'Could not load the notes.',
+  'companionNotes.empty': 'No companion notes in this period.',
+
+  'sessionNotes.title': 'Notes - Past Sessions',
+  'sessionNotes.intro': "Look up a past session's note by date.",
+  'sessionNotes.dateLabel': 'Session date',
+  'sessionNotes.datePlaceholder': 'dd/mm/yyyy',
+  'sessionNotes.dateInvalid': 'Invalid date.',
+  'sessionNotes.lookup': 'Search',
+  'sessionNotes.loading': 'Loading note…',
+  'sessionNotes.found': 'Note from the {date} session',
+  'sessionNotes.empty': 'No note recorded for {date}.',
+  'sessionNotes.loadError': 'Could not load the note.',
 
   'logForm.title': "Today's check-in",
   'logForm.loading': 'Loading form...',
@@ -750,6 +821,23 @@ export const en: Record<TranslationKey, string> = {
   'patient.menuContract': 'Agreement',
   'patient.noQuestionnaires':
     'No questionnaire to answer today. Come back when a new one is up.',
+
+  'push.cardTitle': 'Reminders on this device',
+  'push.cardBodyRecipient':
+    'A gentle nudge at 9 PM on days your check-in is still open.',
+  'push.cardBodyCaregiver':
+    "A reminder at 9 PM when the day's log hasn't been filled during your shift.",
+  'push.enable': 'Enable notifications',
+  'push.denied':
+    'Notifications are blocked by the browser. Allow them in the site settings to receive reminders.',
+  'push.error':
+    'Could not enable notifications on this device. Please try again.',
+  'push.nudgeTitle': 'Turn on reminders?',
+  'push.nudgeBodyRecipient':
+    'Want us to remind you on this device when your daily check-in is still pending?',
+  'push.nudgeBodyCaregiver':
+    "Want a reminder on this device when your shift's daily log is still pending?",
+  'push.nudgeDismiss': 'Not now',
 
   // Crisis plan — the care team's read-only protocol for an emergency. Names,
   // phone numbers, protocol steps AND protocol titles are recipient data
@@ -923,6 +1011,14 @@ export const en: Record<TranslationKey, string> = {
     'Medication: {name}\nDays remaining: {days}\nCalculation date: {date}',
   'email.missingLogSubject': '[sihha] Daily log not submitted',
   'email.missingLogBody': 'Date: {date}\nCare recipient: {name}',
+  'email.fillReminderCaregiverSubject':
+    '[sihha] ⏰ Today’s log is still pending',
+  'email.fillReminderCaregiverBody':
+    "{name}'s log for {date} hasn't been filled in yet. Please do it NOW — after midnight, today's log can no longer be recorded.",
+  'email.fillReminderRecipientSubject':
+    '[sihha] ⏰ Your check-in is still pending',
+  'email.fillReminderRecipientBody':
+    "Your check-in for {date} hasn't been filled in yet. Please do it NOW — after midnight, today's log can no longer be recorded.",
   'email.metricAlertSubject': '[sihha] Alert: {label}',
   'email.metricAlertBody':
     'Rule: {label}\nMetric: {metricKey}\nRecorded value: {value}',

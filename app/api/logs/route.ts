@@ -157,14 +157,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   let existing: {
     id: string;
     values: Record<string, unknown>;
-    notes: string | null;
+    shift_notes: string | null;
     author_id: string;
     created_at: string;
   } | null = null;
   if (recipient.log_cadence === 'one_per_day') {
     let existingQuery = adminDb
       .from('care_log_entries')
-      .select('id, values, notes, author_id, created_at')
+      .select('id, values, shift_notes, author_id, created_at')
       .eq('recipient_id', recipient.id)
       .eq('log_date', logDate)
       .eq('author_role', authorRole);
@@ -195,7 +195,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         author_role: authorRole,
         author_profile: authorProfile,
         replaced_values: existing.values,
-        replaced_notes: existing.notes,
+        replaced_notes: existing.shift_notes,
         replaced_author_id: existing.author_id,
         replaced_created_at: existing.created_at,
         overwritten_by: user.id,
@@ -220,7 +220,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         author_id: user.id,
         created_at: createdAt,
         values: validated.values,
-        notes: payload.notes ?? null,
+        shift_notes: payload.notes ?? null,
         lat: payload.location?.lat ?? null,
         lng: payload.location?.lng ?? null,
         location_verified: locationVerified,
@@ -271,7 +271,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         author_profile: authorProfile,
         log_date: logDate,
         values: validated.values,
-        notes: payload.notes,
+        shift_notes: payload.notes,
         lat: payload.location?.lat ?? null,
         lng: payload.location?.lng ?? null,
         location_verified: locationVerified,
