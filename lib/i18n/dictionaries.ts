@@ -330,6 +330,7 @@ export const pt = {
     'Fechamento projetado considerando o atingimento de metas realizado até agora durante o mês.',
   'goal.subgoalsHint':
     'Passe o mouse ou toque numa barra para ver a meta e o realizado no mês.',
+  'goal.trend8w': 'Últimas 8 semanas',
   'goal.tt.auto':
     'Meta: todos os dias · Realizado no mês: {done} de {days} dias · Atingimento: {pct}',
   'goal.tt.avgMax':
@@ -910,6 +911,7 @@ export const en: Record<TranslationKey, string> = {
     'Projected closing based on the goal attainment achieved so far this month.',
   'goal.subgoalsHint':
     'Hover over or tap a bar to see the goal and the month-to-date.',
+  'goal.trend8w': 'Last 8 weeks',
   'goal.tt.auto':
     'Goal: every day · Achieved this month: {done} of {days} days · Attainment: {pct}',
   'goal.tt.avgMax':

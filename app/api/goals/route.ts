@@ -1,18 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDbClient } from '../../../services/db';
 import { authorizeCareRequest } from '../../../services/careTeam';
-import { localDate, MetricDefinitionRow } from '../../../services/dynamicLog';
+import { localDate } from '../../../services/dynamicLog';
 import {
   computeGoalProgress,
-  computeGoalRunRate,
-  groceryBreakdown,
-  groceryShareDefinition,
-  groceryShareEntries,
   monthEnd,
   GoalProgramRow,
-  InvoiceItemLite,
-  LogEntryLite,
 } from '../../../services/goals';
+import { computeGoalRunRate } from '../../../services/goalRunRate';
+import { groceryBreakdown } from '../../../services/groceryShare';
+import { loadGoalInputs } from '../../../services/goalInputs';
 import { logger } from '../../../services/logger';
 
 const MONTH_RE = /^\d{4}-\d{2}$/;
@@ -82,54 +79,24 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     program.starts_on > `${month}-01` ? program.starts_on : `${month}-01`;
   const monthLastDay = monthEnd(month);
 
-  const [defsRes, entriesRes, itemsRes] = await Promise.all([
-    adminDb
-      .from('metric_definitions')
-      .select(
-        'key, label, short_label, value_type, config, cadence, cadence_day, cadence_days, cadence_start, filled_by, required, sort_order, active',
-      )
-      .eq('recipient_id', recipient.id)
-      .eq('active', true),
-    adminDb
-      .from('care_log_entries')
-      .select('log_date, values')
-      .eq('recipient_id', recipient.id)
-      .gte('log_date', periodStart)
-      .lte('log_date', monthLastDay),
-    // Supermercado: classified grocery line items become synthetic
-    // entries under the virtual GROCERY_SHARE_KEY metric
-    adminDb
-      .from('invoice_items')
-      .select(
-        'purchase_date, amount_cents, discretionary, category, invoices!inner(doc_type)',
-      )
-      .eq('recipient_id', recipient.id)
-      .eq('invoices.doc_type', 'grocery')
-      .gte('purchase_date', periodStart)
-      .lte('purchase_date', monthLastDay),
-  ]);
-
-  if (defsRes.error || entriesRes.error || itemsRes.error) {
+  const { inputs, error: inputsError } = await loadGoalInputs(
+    adminDb,
+    recipient.id,
+    periodStart,
+    monthLastDay,
+  );
+  if (inputsError || !inputs) {
     logger.error(
       'goals: inputs query failed',
       { route: '/api/goals', action: 'inputs' },
-      defsRes.error ?? entriesRes.error ?? itemsRes.error,
+      inputsError,
     );
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 },
     );
   }
-
-  const items = (itemsRes.data ?? []) as unknown as InvoiceItemLite[];
-  const definitions = [
-    ...((defsRes.data ?? []) as MetricDefinitionRow[]),
-    groceryShareDefinition(),
-  ];
-  const entries = [
-    ...((entriesRes.data ?? []) as LogEntryLite[]),
-    ...groceryShareEntries(items),
-  ];
+  const { definitions, entries, items } = inputs;
 
   const progress = computeGoalProgress(program, definitions, entries, month);
   const runRate = computeGoalRunRate(program, definitions, entries, month);
@@ -139,6 +106,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     months: { first: firstMonth, last: lastMonth },
     progress,
     runRate,
-    grocery: groceryBreakdown(items),
+    // topN higher than the overview teaser shows (3) — the grocery detail
+    // page lists the full ranking, the teaser just slices the first 3.
+    grocery: groceryBreakdown(items, 12),
   });
 }

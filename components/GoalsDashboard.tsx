@@ -24,11 +24,22 @@ interface MetricDetailDto {
 }
 
 interface MetricProgressDto {
+  uid: string;
   key: string;
   label: string;
   rule: string;
   score: number | null;
   detail: MetricDetailDto;
+}
+
+interface WeekPointDto {
+  bucket: string;
+  pct: number | null;
+}
+
+interface GoalSeriesResponse {
+  month: string | null;
+  series: { uid: string; weekly: WeekPointDto[] }[];
 }
 
 interface CategoryProgressDto {
@@ -113,14 +124,49 @@ interface FlatBar {
   groupIndex: number;
 }
 
+// A sub-goal's last-8-weeks attainment as a tiny bar sparkline; a week with
+// no evidence (pct null) reads as an empty neutral bar, not a zero score.
+function WeeklyTrend({ weekly }: { weekly: WeekPointDto[] }) {
+  const w = 120;
+  const h = 28;
+  const barW = w / weekly.length - 2;
+  return (
+    <svg
+      viewBox={`0 0 ${w} ${h}`}
+      style={{ width: w, height: h, display: 'block' }}
+      role="img"
+    >
+      {weekly.map((point, i) => {
+        const barH =
+          point.pct === null ? 2 : Math.max((point.pct / 100) * h, 2);
+        return (
+          <rect
+            key={point.bucket}
+            x={i * (barW + 2)}
+            y={h - barH}
+            width={barW}
+            height={barH}
+            rx={1}
+            fill={point.pct === null ? 'var(--neutral-300)' : 'var(--moss-500)'}
+          />
+        );
+      })}
+    </svg>
+  );
+}
+
 function SubGoalsChart({
   categories,
   tooltipFor,
   subgoalLabel,
+  weeklyFor,
+  trendLabel,
 }: {
   categories: CategoryProgressDto[];
   tooltipFor: (metric: MetricProgressDto) => string;
   subgoalLabel: (metric: MetricProgressDto) => string;
+  weeklyFor: (uid: string) => WeekPointDto[] | undefined;
+  trendLabel: string;
 }) {
   const [selected, setSelected] = useState<number | null>(null);
   // Hover shows the balloon on pointer devices; a click/tap pins it — the
@@ -326,6 +372,14 @@ function SubGoalsChart({
                 </div>
               ))}
           </div>
+          {weeklyFor(displayedBar.metric.uid) && (
+            <div style={{ marginTop: 'var(--space-2)' }}>
+              <div className="t-caption" style={{ marginBottom: 2 }}>
+                {trendLabel}
+              </div>
+              <WeeklyTrend weekly={weeklyFor(displayedBar.metric.uid)!} />
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -671,8 +725,18 @@ export default function GoalsDashboard({
   // null = the API's default (current month, or the program's first)
   const [month, setMonth] = useState<string | null>(null);
   const [data, setData] = useState<GoalsResponse | null>(null);
+  const [series, setSeries] = useState<GoalSeriesResponse | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+
+  const goalsUrl = (base: string) => {
+    let url = withViewAs(
+      recipientId ? withRecipient(base, recipientId) : base,
+      viewAs,
+    );
+    if (month) url += `${url.includes('?') ? '&' : '?'}month=${month}`;
+    return url;
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -683,18 +747,10 @@ export default function GoalsDashboard({
         setLoading(false);
         return;
       }
+      const authHeader = { Authorization: `Bearer ${session.access_token}` };
       try {
-        let url = withViewAs(
-          recipientId
-            ? withRecipient(API_ROUTES.GOALS, recipientId)
-            : API_ROUTES.GOALS,
-          viewAs,
-        );
-        if (month) {
-          url += `${url.includes('?') ? '&' : '?'}month=${month}`;
-        }
-        const res = await fetch(url, {
-          headers: { Authorization: `Bearer ${session.access_token}` },
+        const res = await fetch(goalsUrl(API_ROUTES.GOALS), {
+          headers: authHeader,
         });
         if (!res.ok) {
           setError(t('goal.loadError'));
@@ -707,9 +763,25 @@ export default function GoalsDashboard({
       } finally {
         setLoading(false);
       }
+      // Trend data is a dashboard enhancement, not the page's critical
+      // path — a failure here must never block or error the goals view.
+      try {
+        const seriesRes = await fetch(goalsUrl(API_ROUTES.GOALS_SERIES), {
+          headers: authHeader,
+        });
+        if (seriesRes.ok) {
+          setSeries((await seriesRes.json()) as GoalSeriesResponse);
+        }
+      } catch {
+        // trend stays unavailable; the balloon simply omits it
+      }
     };
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recipientId, viewAs, month, t]);
+
+  const weeklyFor = (uid: string): WeekPointDto[] | undefined =>
+    series?.series.find((s) => s.uid === uid)?.weekly;
 
   if (loading && !data) return null;
   if (error) {
@@ -985,6 +1057,8 @@ export default function GoalsDashboard({
           categories={progress.categories}
           tooltipFor={tooltipFor}
           subgoalLabel={subgoalLabel}
+          weeklyFor={weeklyFor}
+          trendLabel={t('goal.trend8w')}
         />
         <p className="t-caption" style={{ marginTop: 'var(--space-2)' }}>
           {t('goal.subgoalsHint')}

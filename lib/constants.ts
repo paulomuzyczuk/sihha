@@ -11,6 +11,7 @@ export const API_ROUTES = {
   METRICS: '/api/metrics',
   LOG_AGGREGATES: '/api/logs/aggregates',
   GOALS: '/api/goals',
+  GOALS_SERIES: '/api/goals/series',
   PSYCHOMETRICS: '/api/psychometrics',
   CIRCLES: '/api/circles',
   ADMIN_INVITE: '/api/admin/invite',

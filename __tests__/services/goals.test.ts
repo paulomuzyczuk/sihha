@@ -1,15 +1,17 @@
 import type { MetricDefinitionRow } from '../../services/dynamicLog';
 import {
   computeGoalProgress,
-  computeGoalRunRate,
   entryDayScore,
+  GoalProgramRow,
+} from '../../services/goals';
+import { computeGoalRunRate } from '../../services/goalRunRate';
+import {
   groceryBreakdown,
   groceryShareDefinition,
   groceryShareEntries,
-  GoalProgramRow,
   GROCERY_SHARE_KEY,
   InvoiceItemLite,
-} from '../../services/goals';
+} from '../../services/groceryShare';
 
 // Classified invoice line item; category defaults to a neutral essential
 const item = (
@@ -181,6 +183,39 @@ describe('entryDayScore', () => {
         '2026-08-03',
       ),
     ).toBe(0);
+  });
+
+  it('parent_value with `values` catches several answers under one goal', () => {
+    // An "Outros" goal absorbing every non-primary appointment type
+    const outros = {
+      key: 'appointment_attended',
+      rule: 'parent_value' as const,
+      values: ['nutritionist', 'dentist', 'other'],
+    };
+    const attended = (type: string) => ({
+      appointment_type: type,
+      appointment_attended: true,
+    });
+    expect(
+      entryDayScore(
+        outros,
+        ATTENDED_DEF,
+        attended('nutritionist'),
+        '2026-08-03',
+      ),
+    ).toBe(1);
+    expect(
+      entryDayScore(outros, ATTENDED_DEF, attended('dentist'), '2026-08-03'),
+    ).toBe(1);
+    // A primary type it does not list is skipped, not scored
+    expect(
+      entryDayScore(
+        outros,
+        ATTENDED_DEF,
+        attended('psychologist'),
+        '2026-08-03',
+      ),
+    ).toBeNull();
   });
 
   it('min_hours is proportional and capped at 1', () => {
@@ -443,7 +478,7 @@ describe('computeGoalProgress', () => {
   });
 
   it("ignores entries that don't carry a metric (role-scoped days)", () => {
-    // Monday only Alex Doe's self-report exists — no chores keys in its values,
+    // Monday only the patient's self-report exists — no chores keys in its values,
     // so the chores category must not treat the day as a zero
     const entries = [
       { log_date: '2026-08-03', values: { who5_cheerful: 4 } },
