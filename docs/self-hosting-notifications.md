@@ -6,6 +6,37 @@ deployment's experience — not a description of code that ships here.
 
 ---
 
+## Outbound email provider — recorded decision (2026-09-12)
+
+Flagship's `resend-delivery-webhooks` cluster (`services/resendWebhook.ts` +
+`app/api/webhooks/resend/route.ts`) is policy-included in the sync manifest —
+CHARTER.md calls it "a reliability improvement that strengthens the alert
+path for everyone" — but it is meaningless on top of this repo's email
+backend: `services/email.ts` sends via Gmail SMTP (`nodemailer`), which has
+no delivery-webhook concept at all. Porting the cluster as-is would ship dead
+code with no provider to drive it.
+
+Considered and rejected for now:
+
+- **Migrate to Resend outright.** Unlocks the cluster cleanly, but trades a
+  zero-friction Gmail account (the lowest-friction on-ramp for this
+  project's target user — a family or small care team, not a company) for a
+  new provider account and two more secrets (`RESEND_API_KEY`,
+  `RESEND_WEBHOOK_SECRET`).
+- **Support both backends behind an env switch.** Avoids the trade-off above
+  but means maintaining two email code paths — and a webhook route +
+  `email_events` ledger that are dead weight on every Gmail deployment,
+  which is most of them — against this repo's own bias against
+  feature-flagged shims (`CLAUDE.md`).
+
+**Decision:** keep Gmail SMTP as the only backend for now. Revisit
+`resend-delivery-webhooks` only if/when there's separate appetite to make
+Resend the default outbound provider for this template (a bigger decision
+than delivery-confirmation alone — better deliverability generally, not just
+webhooks). At that point the cluster ports mechanically with no further
+design work. Until then this stays a documented gap, not a silent one — see
+the DIY blueprint below if you want delivery visibility sooner than that.
+
 ## Why this isn't in the template
 
 The public template's alerting is deliberately minimal: a daily missing-log
